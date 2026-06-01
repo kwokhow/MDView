@@ -1,0 +1,45 @@
+name: Release
+
+# Builds the Windows installers and publishes them to a GitHub Release
+# whenever you push a version tag like v1.0.0.
+#
+#   git tag v1.0.0
+#   git push origin v1.0.0
+#
+# electron-builder infers the GitHub repo from the `origin` remote and uploads
+# the NSIS installer + portable exe as release assets using the built-in token.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Build renderer/main/preload
+        run: npm run build
+
+      - name: Package and publish installers
+        run: npx electron-builder --win nsis portable --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

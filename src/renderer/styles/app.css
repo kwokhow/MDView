@@ -1,0 +1,179 @@
+:root {
+  --app-zoom: 1;
+
+  /* App chrome — light defaults. Crepe handles the editor surface itself. */
+  --chrome-bg: #ffffff;
+  --chrome-fg: #57606a;
+  --chrome-border: #e1e4e8;
+  --chrome-bar-bg: #f6f8fa;
+  --chrome-accent: #0969da;
+  --find-all-bg: #fff3b0;
+  --find-current-bg: #ff9632;
+}
+
+:root[data-theme='dark'] {
+  --chrome-bg: #1c1f24;
+  --chrome-fg: #9da5b4;
+  --chrome-border: #30363d;
+  --chrome-bar-bg: #161b22;
+  --chrome-accent: #58a6ff;
+  --find-all-bg: #5a4a00;
+  --find-current-bg: #b86b00;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: -apple-system, 'Segoe UI', system-ui, Roboto, Helvetica, Arial, sans-serif;
+  background: var(--chrome-bg);
+  color: var(--chrome-fg);
+  overflow: hidden;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: relative;
+}
+
+/* ---- Editor host ---- */
+#editor-host {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+#editor-host .milkdown {
+  font-size: calc(1em * var(--app-zoom));
+}
+
+/* Comfortable reading column + generous padding. */
+#editor-host .milkdown .ProseMirror,
+#editor-host .milkdown .editor {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 40px 32px 96px;
+}
+
+/* Reading mode: hide caret affordances. */
+body.reading #editor-host .milkdown .ProseMirror {
+  caret-color: transparent;
+}
+
+/* ---- Find bar ---- */
+.find-bar {
+  position: absolute;
+  top: 12px;
+  right: 18px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: var(--chrome-bar-bg);
+  border: 1px solid var(--chrome-border);
+  border-radius: 8px;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.18);
+  z-index: 20;
+}
+
+.find-bar.hidden {
+  display: none;
+}
+
+#find-input {
+  border: 1px solid var(--chrome-border);
+  background: var(--chrome-bg);
+  color: var(--chrome-fg);
+  border-radius: 5px;
+  padding: 5px 8px;
+  font-size: 13px;
+  width: 220px;
+  outline: none;
+}
+
+#find-input:focus {
+  border-color: var(--chrome-accent);
+}
+
+.find-count {
+  font-size: 12px;
+  color: var(--chrome-fg);
+  min-width: 42px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.find-btn {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--chrome-fg);
+  border-radius: 5px;
+  padding: 4px 7px;
+  font-size: 12px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.find-btn:hover {
+  background: var(--chrome-bg);
+  border-color: var(--chrome-border);
+}
+
+/* ---- Find highlights (CSS Custom Highlight API) ---- */
+::highlight(mdview-find) {
+  background-color: var(--find-all-bg);
+}
+
+::highlight(mdview-find-current) {
+  background-color: var(--find-current-bg);
+  color: #000;
+}
+
+/* ---- Status bar ---- */
+#status-bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 26px;
+  padding: 0 14px;
+  font-size: 12px;
+  color: var(--chrome-fg);
+  background: var(--chrome-bar-bg);
+  border-top: 1px solid var(--chrome-border);
+  user-select: none;
+}
+
+.status-spacer {
+  flex: 1 1 auto;
+}
+
+.status-clickable {
+  cursor: pointer;
+}
+
+.status-clickable:hover {
+  color: var(--chrome-accent);
+}
+
+/* Scrollbar polish */
+#editor-host::-webkit-scrollbar {
+  width: 12px;
+}
+#editor-host::-webkit-scrollbar-thumb {
+  background: var(--chrome-border);
+  border: 3px solid var(--chrome-bg);
+  border-radius: 6px;
+}
+#editor-host::-webkit-scrollbar-thumb:hover {
+  background: var(--chrome-fg);
+}

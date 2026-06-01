@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src 'self' data: https: file:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self'"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MDView</title>
+  </head>
+  <body>
+    <div id="app">
+      <main id="editor-host"></main>
+
+      <!-- Find overlay -->
+      <div id="find-bar" class="find-bar hidden" role="search">
+        <input id="find-input" type="text" placeholder="Find in document…" aria-label="Find" />
+        <span id="find-count" class="find-count">0/0</span>
+        <button id="find-prev" class="find-btn" title="Previous (Shift+Enter)" aria-label="Previous match">▲</button>
+        <button id="find-next" class="find-btn" title="Next (Enter)" aria-label="Next match">▼</button>
+        <button id="find-close" class="find-btn" title="Close (Esc)" aria-label="Close find">✕</button>
+      </div>
+
+      <!-- Status bar -->
+      <footer id="status-bar">
+        <span id="status-name">Untitled</span>
+        <span class="status-spacer"></span>
+        <span id="status-words">0 words</span>
+        <span id="status-chars">0 characters</span>
+        <span id="status-theme" class="status-clickable" title="Toggle theme (Ctrl+\)">Light</span>
+      </footer>
+    </div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,110 @@
+{
+  "name": "mdview",
+  "version": "1.0.0",
+  "description": "MDView by KEC — a live-WYSIWYG Markdown editor for Windows",
+  "main": "./out/main/index.js",
+  "author": {
+    "name": "KEC",
+    "email": "kwokhow.lou@gmail.com"
+  },
+  "license": "MIT",
+  "type": "module",
+  "homepage": "https://github.com/kwokhow/MDView#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kwokhow/MDView.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kwokhow/MDView/issues"
+  },
+  "keywords": [
+    "markdown",
+    "editor",
+    "wysiwyg",
+    "electron",
+    "windows",
+    "mdview",
+    "kec"
+  ],
+  "scripts": {
+    "dev": "electron-vite dev",
+    "start": "electron-vite preview",
+    "build": "electron-vite build",
+    "typecheck:node": "tsc --noEmit -p tsconfig.node.json",
+    "typecheck:web": "tsc --noEmit -p tsconfig.web.json",
+    "typecheck": "npm run typecheck:node && npm run typecheck:web",
+    "dist": "electron-vite build && electron-builder",
+    "dist:dir": "electron-vite build && electron-builder --dir"
+  },
+  "dependencies": {
+    "@milkdown/crepe": "^7.21.1",
+    "@milkdown/kit": "^7.21.1",
+    "electron-store": "^10.0.0"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^26.0.0",
+    "electron-vite": "^5.0.0",
+    "typescript": "^5.7.0",
+    "vite": "^6.0.0"
+  },
+  "build": {
+    "appId": "com.kec.mdview",
+    "productName": "MDView",
+    "copyright": "Copyright © 2026 KEC",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "kwokhow",
+        "repo": "MDView"
+      }
+    ],
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "out/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "build/icon.png",
+        "to": "icon.png"
+      }
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "MDView"
+    },
+    "portable": {
+      "artifactName": "MDView-${version}-portable.exe"
+    },
+    "fileAssociations": [
+      {
+        "ext": "md",
+        "name": "Markdown Document",
+        "description": "Markdown file",
+        "role": "Editor",
+        "icon": "build/icon.ico"
+      },
+      {
+        "ext": "markdown",
+        "name": "Markdown Document",
+        "description": "Markdown file",
+        "role": "Editor",
+        "icon": "build/icon.ico"
+      }
+    ]
+  }
+}
