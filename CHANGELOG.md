@@ -2,6 +2,14 @@
 
 All notable changes to MDView are documented here.
 
+## [1.0.1] — 2026-06-05
+
+### Added
+- Reopen the last opened file automatically on startup. When you launch MDView
+  without opening a specific file, it restores the document from your previous
+  session (if it still exists on disk). Opening a file via the command line or
+  "Open with" still takes precedence.
+
 ## [1.0.0] — 2026-06-01
 
 First public release.

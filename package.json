@@ -1,6 +1,6 @@
 {
   "name": "mdview",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "MDView by KEC — a live-WYSIWYG Markdown editor for Windows",
   "main": "./out/main/index.js",
   "author": {

@@ -9,7 +9,8 @@ import {
   getWindowBounds,
   setWindowBounds,
   getMaximized,
-  setMaximized
+  setMaximized,
+  getLastFile
 } from './settings'
 
 let mainWindow: BrowserWindow | null = null
@@ -164,8 +165,15 @@ if (!gotLock) {
     createWindow()
 
     // Open a file passed on the command line (file association / "open with").
+    // If none was given, reopen the last file from the previous session, as
+    // long as it still exists on disk.
     const initialPath = findPathInArgv(process.argv)
-    if (initialPath) sendOpenPath(initialPath)
+    if (initialPath) {
+      sendOpenPath(initialPath)
+    } else {
+      const lastFile = getLastFile()
+      if (lastFile && existsSync(lastFile)) sendOpenPath(lastFile)
+    }
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow()

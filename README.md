@@ -23,8 +23,8 @@ Grab a build from the **[Releases page](https://github.com/kwokhow/MDView/releas
 
 | File | What it is |
 | --- | --- |
-| `MDView Setup 1.0.0.exe` | NSIS installer (~85 MB). Installs the app, creates a Start-menu/desktop shortcut, and registers `.md` / `.markdown` files so you can double-click or "Open with" MDView. |
-| `MDView-1.0.0-portable.exe` | Single self-contained executable (~85 MB). No install — just run it. (Does not register file associations.) |
+| `MDView Setup <version>.exe` | NSIS installer (~85 MB). Installs the app, creates a Start-menu/desktop shortcut, and registers `.md` / `.markdown` files so you can double-click or "Open with" MDView. |
+| `MDView-<version>-portable.exe` | Single self-contained executable (~85 MB). No install — just run it. (Does not register file associations.) |
 
 > The executables are **unsigned** (no paid code-signing certificate), so Windows
 > SmartScreen may show a "Windows protected your PC" prompt on first run — choose

@@ -1,18 +1,20 @@
 import Store from 'electron-store'
 import type { ThemeName } from '../shared/types'
 
-/** Persisted app settings: window geometry + theme. */
+/** Persisted app settings: window geometry + theme + last opened file. */
 interface SettingsSchema {
   windowBounds: { width: number; height: number; x?: number; y?: number }
   maximized: boolean
   theme: ThemeName
+  lastFile: string | null
 }
 
 const store = new Store<SettingsSchema>({
   defaults: {
     windowBounds: { width: 1100, height: 760 },
     maximized: false,
-    theme: 'light'
+    theme: 'light',
+    lastFile: null
   }
 })
 
@@ -38,4 +40,13 @@ export function getTheme(): ThemeName {
 
 export function setTheme(theme: ThemeName): void {
   store.set('theme', theme)
+}
+
+/** Absolute path of the most recently opened/saved file, or null. */
+export function getLastFile(): string | null {
+  return store.get('lastFile')
+}
+
+export function setLastFile(path: string | null): void {
+  store.set('lastFile', path)
 }

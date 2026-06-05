@@ -7,7 +7,7 @@ import {
   saveViaDialog,
   addRecentDocument
 } from './files'
-import { getTheme, setTheme } from './settings'
+import { getTheme, setTheme, setLastFile } from './settings'
 
 /** Callbacks the window owner provides so IPC can update per-window state. */
 interface IpcHooks {
@@ -27,13 +27,17 @@ export function registerIpc(hooks: IpcHooks): void {
     const win = ownerWindow(event)
     if (!win) return null
     const opened = await openFileViaDialog(win)
-    if (opened) addRecentDocument(opened.path)
+    if (opened) {
+      addRecentDocument(opened.path)
+      setLastFile(opened.path)
+    }
     return opened
   })
 
   ipcMain.handle(IpcInvoke.fileRead, async (_event, path: string) => {
     const opened = await readMarkdownFile(path)
     addRecentDocument(path)
+    setLastFile(path)
     return opened
   })
 
@@ -47,7 +51,10 @@ export function registerIpc(hooks: IpcHooks): void {
       const win = ownerWindow(event)
       if (!win) return null
       const saved = await saveViaDialog(win, content, suggestedName)
-      if (saved) addRecentDocument(saved.path)
+      if (saved) {
+        addRecentDocument(saved.path)
+        setLastFile(saved.path)
+      }
       return saved
     }
   )
