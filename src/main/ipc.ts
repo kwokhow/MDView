@@ -11,6 +11,8 @@ import { getTheme, setTheme, setLastFile } from './settings'
 
 /** Callbacks the window owner provides so IPC can update per-window state. */
 interface IpcHooks {
+  /** Absolute path of the file to open on startup, or null for the welcome doc. */
+  getStartupFile: () => string | null
   /** Called when the renderer reports a dirty-state change. */
   onDirtyChange: (win: BrowserWindow, dirty: boolean) => void
   /** Called when the renderer confirms it is safe to close. */
@@ -58,6 +60,20 @@ export function registerIpc(hooks: IpcHooks): void {
       return saved
     }
   )
+
+  ipcMain.handle(IpcInvoke.startupFile, async () => {
+    const path = hooks.getStartupFile()
+    if (!path) return null
+    try {
+      const opened = await readMarkdownFile(path)
+      addRecentDocument(path)
+      setLastFile(path)
+      return opened
+    } catch {
+      // File vanished or is unreadable between the existence check and read.
+      return null
+    }
+  })
 
   ipcMain.handle(IpcInvoke.themeGet, (): ThemeName => getTheme())
 

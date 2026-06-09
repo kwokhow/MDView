@@ -2,6 +2,16 @@
 
 All notable changes to MDView are documented here.
 
+## [1.0.2] — 2026-06-09
+
+### Fixed
+- Fixed a startup race introduced in 1.0.1 where the editor's stylesheet could
+  render as raw text at the top of a document when reopening the last file. The
+  editor now mounts exactly once with the correct content, and all editor
+  create/destroy operations are serialized so they can never interleave. No
+  files were ever corrupted by this display glitch, but saving while it showed
+  could have written the stray text — this removes that risk.
+
 ## [1.0.1] — 2026-06-05
 
 ### Added

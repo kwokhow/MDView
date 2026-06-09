@@ -13,7 +13,8 @@ export const IpcInvoke = {
   recentAdd: 'recent:add',
   themeGet: 'theme:get',
   themeSet: 'theme:set',
-  confirmClose: 'app:confirmClose'
+  confirmClose: 'app:confirmClose',
+  startupFile: 'app:startupFile'
 } as const
 
 /** IPC channels pushed from main to the renderer (fire and forget). */
@@ -63,6 +64,13 @@ export interface MdViewApi {
   setDirty: (dirty: boolean) => void
   /** Add a path to the OS recent-documents / jump list. */
   addRecent: (path: string) => void
+  /**
+   * The file to open on startup (CLI/"open with" arg, else the last session's
+   * file if it still exists), already read. null if there is none — the
+   * renderer then shows the welcome document. Resolved once, before mount, so
+   * the editor mounts a single time with the correct content.
+   */
+  getStartupFile: () => Promise<OpenedFile | null>
   /** Read the persisted theme. */
   getTheme: () => Promise<ThemeName>
   /** Persist the theme. */

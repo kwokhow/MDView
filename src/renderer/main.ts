@@ -198,11 +198,29 @@ async function init(): Promise<void> {
   applyTheme(theme)
   el.themeLabel.textContent = theme === 'dark' ? 'Dark' : 'Light'
 
-  editor = await MarkdownEditor.mount(el.host, WELCOME)
+  // Resolve the startup file BEFORE mounting so the editor is created exactly
+  // once with the correct content. This avoids a mount-welcome-then-reload
+  // churn, which previously could race the editor's destroy/recreate and leak
+  // the editor's stylesheet into the document as text.
+  let startup: { path: string; content: string } | null = null
+  try {
+    startup = await window.api.getStartupFile()
+  } catch {
+    startup = null
+  }
+
+  const initialContent = startup ? startup.content : WELCOME
+  editor = await MarkdownEditor.mount(el.host, initialContent)
   editor.setChangeHandler(onEditorChange)
-  renderStatus(WELCOME)
-  // Mounting with default content marks no dirty state.
-  setDoc(createEmptyDocument())
+  renderStatus(initialContent)
+
+  if (startup) {
+    const name = startup.path.split(/[\\/]/).pop() || 'Untitled'
+    setDoc(withSavedPath(doc, startup.path, name))
+  } else {
+    // Mounting with the welcome content marks no dirty state.
+    setDoc(createEmptyDocument())
+  }
 
   find = new FindController(el.host, {
     bar: document.getElementById('find-bar') as HTMLElement,

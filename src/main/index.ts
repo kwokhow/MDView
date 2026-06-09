@@ -34,6 +34,12 @@ let isDirty = false
 let forceClose = false
 /** A file path requested before the window/renderer was ready. */
 let pendingOpenPath: string | null = null
+/**
+ * The file to open when the renderer boots (CLI/"open with" arg, else the last
+ * session's file). The renderer fetches this once via getStartupFile and mounts
+ * the editor a single time with it — avoiding a mount-then-reload churn.
+ */
+let startupFilePath: string | null = null
 
 /** Find a markdown path among CLI args (Windows "open with" / jump list). */
 function findPathInArgv(argv: string[]): string | null {
@@ -151,7 +157,19 @@ if (!gotLock) {
   })
 
   app.whenReady().then(() => {
+    // Decide the startup file BEFORE creating the window: a CLI/"open with"
+    // path takes precedence, else the last session's file if it still exists.
+    // The renderer fetches it via getStartupFile and mounts once with it.
+    const initialPath = findPathInArgv(process.argv)
+    if (initialPath) {
+      startupFilePath = initialPath
+    } else {
+      const lastFile = getLastFile()
+      startupFilePath = lastFile && existsSync(lastFile) ? lastFile : null
+    }
+
     registerIpc({
+      getStartupFile: () => startupFilePath,
       onDirtyChange: (_win, dirty) => {
         isDirty = dirty
       },
@@ -163,17 +181,6 @@ if (!gotLock) {
     configureAboutPanel()
     buildMenu()
     createWindow()
-
-    // Open a file passed on the command line (file association / "open with").
-    // If none was given, reopen the last file from the previous session, as
-    // long as it still exists on disk.
-    const initialPath = findPathInArgv(process.argv)
-    if (initialPath) {
-      sendOpenPath(initialPath)
-    } else {
-      const lastFile = getLastFile()
-      if (lastFile && existsSync(lastFile)) sendOpenPath(lastFile)
-    }
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow()

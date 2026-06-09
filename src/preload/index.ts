@@ -23,6 +23,8 @@ const api: MdViewApi = {
     ipcRenderer.invoke(IpcInvoke.fileSaveAs, content, suggestedName) as Promise<SavedFile | null>,
   setDirty: (dirty: boolean) => ipcRenderer.send(IpcInvoke.docSetDirty, dirty),
   addRecent: (path: string) => ipcRenderer.send(IpcInvoke.recentAdd, path),
+  getStartupFile: () =>
+    ipcRenderer.invoke(IpcInvoke.startupFile) as Promise<OpenedFile | null>,
   getTheme: () => ipcRenderer.invoke(IpcInvoke.themeGet) as Promise<ThemeName>,
   setTheme: (theme: ThemeName) => ipcRenderer.send(IpcInvoke.themeSet, theme),
   confirmClose: () => ipcRenderer.send(IpcInvoke.confirmClose),
