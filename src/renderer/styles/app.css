@@ -62,11 +62,75 @@ body {
   max-width: 860px;
   margin: 0 auto;
   padding: 40px 32px 96px;
+  /* Looser leading is easier on the eyes for long documents. */
+  line-height: 1.7;
+}
+
+/* Nothing in the document may push past the reading column. */
+#editor-host .milkdown .ProseMirror > * {
+  max-width: 100%;
+}
+
+/* Long URLs and identifiers wrap instead of forcing a horizontal scrollbar. */
+#editor-host .milkdown .ProseMirror p,
+#editor-host .milkdown .ProseMirror li {
+  overflow-wrap: break-word;
+}
+
+/* Fenced code blocks scroll on their own rather than stretching the page. */
+#editor-host .milkdown .milkdown-code-block {
+  max-width: 100%;
+}
+
+#editor-host .milkdown .milkdown-code-block .cm-scroller {
+  overflow-x: auto;
 }
 
 /* Reading mode: hide caret affordances. */
 body.reading #editor-host .milkdown .ProseMirror {
   caret-color: transparent;
+}
+
+/* ---- Tables ----
+   ProseMirror applies `table-layout: fixed` with explicit per-column pixel
+   widths. Without wrapping, long cell content overflows its column and collides
+   with the neighbouring cell. Allow text to wrap inside cells, and let a table
+   that is genuinely too wide scroll horizontally rather than overlap. */
+#editor-host .milkdown .milkdown-table-block {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+#editor-host .milkdown .milkdown-table-block table {
+  /* Fill the reading column so columns get sensible widths on first render. */
+  min-width: 100%;
+}
+
+#editor-host .milkdown .milkdown-table-block th,
+#editor-host .milkdown .milkdown-table-block td {
+  /* The actual overlap fix: wrap instead of spilling out of the cell.
+     anywhere (not just break-word) also breaks long unbroken tokens such as
+     snake_case identifiers and URLs, which are common in technical docs and
+     would otherwise still overflow a narrow fixed-width column. */
+  overflow-wrap: anywhere;
+  white-space: normal;
+  vertical-align: top;
+  padding: 8px 12px;
+}
+
+/* Cell children must be allowed to shrink below their content width, otherwise
+   the block's min-content size keeps the text spilling out. */
+#editor-host .milkdown .milkdown-table-block th > *,
+#editor-host .milkdown .milkdown-table-block td > * {
+  overflow-wrap: anywhere;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Inline code in a cell should wrap with the text, not extend the column. */
+#editor-host .milkdown .milkdown-table-block code {
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 /* ---- Find bar ---- */

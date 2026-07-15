@@ -47,6 +47,10 @@ images, and links all work.
 | Ctrl + F | Find in document |
 | Ctrl + / | Reading mode (read-only) |
 | Ctrl + \ | Toggle light / dark theme |
+
+Spell checking is off by default, since Markdown documents tend to be full of
+code and identifiers that a dictionary flags as misspellings. Turn it on from
+**View → Check Spelling** — the choice is remembered.
 | Ctrl + = / − / 0 | Zoom in / out / reset |
 | Ctrl + Z / Y | Undo / redo |
 

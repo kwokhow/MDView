@@ -1,11 +1,27 @@
 import { Menu, BrowserWindow, shell, type MenuItemConstructorOptions } from 'electron'
 import { IpcSend, type MenuCommand } from '../shared/types'
 import { showAbout } from './about'
+import { getSpellcheck, setSpellcheck } from './settings'
 
 /** Send a menu command to the focused window's renderer. */
 function dispatch(command: MenuCommand): void {
   const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0]
   win?.webContents.send(IpcSend.menuCommand, command)
+}
+
+/**
+ * Persist the spellcheck preference and apply it to every open window without
+ * needing a restart. The new state is derived from the stored value rather than
+ * the menu item's `checked` flag, so the setting stays authoritative and the
+ * item is re-synced to match it.
+ */
+function toggleSpellcheck(item: Electron.MenuItem): void {
+  const enabled = !getSpellcheck()
+  setSpellcheck(enabled)
+  item.checked = enabled
+  for (const win of BrowserWindow.getAllWindows()) {
+    win.webContents.session.setSpellCheckerEnabled(enabled)
+  }
 }
 
 /** Build and install the application menu with accelerators. */
@@ -42,6 +58,13 @@ export function buildMenu(): void {
       submenu: [
         { label: 'Reading Mode', accelerator: 'CmdOrCtrl+/', click: () => dispatch('toggleReading') },
         { label: 'Toggle Theme', accelerator: 'CmdOrCtrl+\\', click: () => dispatch('toggleTheme') },
+        { type: 'separator' },
+        {
+          label: 'Check Spelling',
+          type: 'checkbox',
+          checked: getSpellcheck(),
+          click: (item) => toggleSpellcheck(item)
+        },
         { type: 'separator' },
         { label: 'Zoom In', accelerator: 'CmdOrCtrl+=', click: () => dispatch('zoomIn') },
         { label: 'Zoom Out', accelerator: 'CmdOrCtrl+-', click: () => dispatch('zoomOut') },

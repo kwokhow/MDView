@@ -10,7 +10,8 @@ import {
   setWindowBounds,
   getMaximized,
   setMaximized,
-  getLastFile
+  getLastFile,
+  getSpellcheck
 } from './settings'
 
 let mainWindow: BrowserWindow | null = null
@@ -82,11 +83,19 @@ function createWindow(): void {
       preload: join(__dirname, '../preload/index.mjs'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false
+      sandbox: false,
+      // The whole document is one editable surface, so the spellchecker
+      // underlines every identifier, code token and product name. That noise is
+      // not worth it for a Markdown editor — toggle it from the View menu.
+      spellcheck: getSpellcheck()
     }
   })
 
   if (getMaximized()) mainWindow.maximize()
+
+  // webPreferences.spellcheck is only read at creation; also drive the session
+  // so the View > Check Spelling toggle and this initial state agree.
+  mainWindow.webContents.session.setSpellCheckerEnabled(getSpellcheck())
 
   mainWindow.once('ready-to-show', () => mainWindow?.show())
 

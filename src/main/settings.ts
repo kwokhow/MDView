@@ -7,6 +7,7 @@ interface SettingsSchema {
   maximized: boolean
   theme: ThemeName
   lastFile: string | null
+  spellcheck: boolean
 }
 
 const store = new Store<SettingsSchema>({
@@ -14,7 +15,10 @@ const store = new Store<SettingsSchema>({
     windowBounds: { width: 1100, height: 760 },
     maximized: false,
     theme: 'light',
-    lastFile: null
+    lastFile: null,
+    // Off by default: Markdown documents are full of code, identifiers and
+    // product names that the dictionary flags as misspellings.
+    spellcheck: false
   }
 })
 
@@ -40,6 +44,15 @@ export function getTheme(): ThemeName {
 
 export function setTheme(theme: ThemeName): void {
   store.set('theme', theme)
+}
+
+/** Whether the browser spellchecker underlines words in the editor. */
+export function getSpellcheck(): boolean {
+  return store.get('spellcheck')
+}
+
+export function setSpellcheck(value: boolean): void {
+  store.set('spellcheck', value)
 }
 
 /** Absolute path of the most recently opened/saved file, or null. */
