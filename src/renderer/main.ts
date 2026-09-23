@@ -1,5 +1,6 @@
 import './styles/app.css'
 import { MarkdownEditor } from './editor'
+import { SourceView } from './source-view'
 import { FindController } from './find'
 import { applyTheme, nextTheme } from './theme'
 import {
@@ -34,6 +35,7 @@ renders in place — no split-pane preview.
 | Ctrl+O | Open |
 | Ctrl+S | Save |
 | Ctrl+F | Find |
+| Ctrl+E | Source mode (raw Markdown with line numbers) |
 | Ctrl+\\\\ | Toggle theme |
 
 \`\`\`js
@@ -50,13 +52,21 @@ let doc: DocumentState = createEmptyDocument()
 let theme: ThemeName = 'light'
 let reading = false
 let zoom = 1
+/** True while the raw-Markdown source surface is the active editor. */
+let sourceMode = false
+/** Guards against re-entrant toggles while a surface switch is in flight. */
+let sourceSwitching = false
 
 let editor!: MarkdownEditor
+let source!: SourceView
 let find!: FindController
 
 const el = {
   host: document.getElementById('editor-host') as HTMLElement,
+  sourceHost: document.getElementById('source-host') as HTMLElement,
   name: document.getElementById('status-name') as HTMLElement,
+  mode: document.getElementById('status-mode') as HTMLElement,
+  cursor: document.getElementById('status-cursor') as HTMLElement,
   words: document.getElementById('status-words') as HTMLElement,
   chars: document.getElementById('status-chars') as HTMLElement,
   themeLabel: document.getElementById('status-theme') as HTMLElement
@@ -67,6 +77,10 @@ function renderStatus(markdown: string): void {
   const words = (markdown.match(/\S+/g) || []).length
   el.words.textContent = `${words} ${words === 1 ? 'word' : 'words'}`
   el.chars.textContent = `${markdown.length} ${markdown.length === 1 ? 'character' : 'characters'}`
+}
+
+function renderCursor(line: number, column: number): void {
+  el.cursor.textContent = `Ln ${line}, Col ${column}`
 }
 
 function syncDocUi(): void {
@@ -81,6 +95,11 @@ function setDoc(next: DocumentState): void {
   if (next.dirty !== wasDirty) window.api.setDirty(next.dirty)
 }
 
+/** Markdown from whichever surface the user is currently editing. */
+function currentMarkdown(): string {
+  return sourceMode && source.isMounted ? source.getText() : editor.getMarkdown()
+}
+
 // --- Dirty tracking (debounced refresh of find while open) ---
 let findTimer: ReturnType<typeof setTimeout> | null = null
 function onEditorChange(markdown: string): void {
@@ -92,27 +111,38 @@ function onEditorChange(markdown: string): void {
   }
 }
 
+function onSourceChange(text: string): void {
+  renderStatus(text)
+  if (!doc.dirty) setDoc(withDirty(doc, true))
+}
+
 // --- File operations ---
 function confirmDiscardIfDirty(): boolean {
   if (!doc.dirty) return true
   return window.confirm('You have unsaved changes. Discard them?')
 }
 
+/** Push new content into every active surface. */
+async function setContent(markdown: string): Promise<void> {
+  await editor.load(markdown)
+  if (source.isMounted) source.setText(markdown)
+}
+
 async function loadFromDisk(path: string, content: string): Promise<void> {
-  await editor.load(content)
+  await setContent(content)
   const name = path.split(/[\\/]/).pop() || 'Untitled'
   setDoc(withSavedPath(doc, path, name))
   renderStatus(content)
   window.api.addRecent(path)
-  editor.focus()
+  focusActive()
 }
 
 async function newFile(): Promise<void> {
   if (!confirmDiscardIfDirty()) return
-  await editor.load('')
+  await setContent('')
   setDoc(resetDocument())
   renderStatus('')
-  editor.focus()
+  focusActive()
 }
 
 async function openFile(): Promise<void> {
@@ -124,7 +154,7 @@ async function openFile(): Promise<void> {
 
 /** Save; returns true if the document is now persisted, false if cancelled. */
 async function save(): Promise<boolean> {
-  const markdown = editor.getMarkdown()
+  const markdown = currentMarkdown()
   if (doc.path) {
     await window.api.saveFile(doc.path, markdown)
     setDoc(withDirty(doc, false))
@@ -134,7 +164,7 @@ async function save(): Promise<boolean> {
 }
 
 async function saveAs(): Promise<boolean> {
-  const markdown = editor.getMarkdown()
+  const markdown = currentMarkdown()
   const suggested = doc.name.endsWith('.md') ? doc.name : `${doc.name}.md`
   const result = await window.api.saveFileAs(markdown, suggested)
   if (!result) return false
@@ -144,17 +174,71 @@ async function saveAs(): Promise<boolean> {
 }
 
 // --- View commands ---
+function focusActive(): void {
+  if (sourceMode) source.focus()
+  else editor.focus()
+}
+
 function toggleTheme(): void {
   theme = nextTheme(theme)
   applyTheme(theme)
   el.themeLabel.textContent = theme === 'dark' ? 'Dark' : 'Light'
+  if (source.isMounted) source.setTheme(theme)
   window.api.setTheme(theme)
 }
 
 function toggleReading(): void {
   reading = !reading
   editor.setReadonly(reading)
+  if (source.isMounted) source.setReadonly(reading)
   document.body.classList.toggle('reading', reading)
+}
+
+/**
+ * Switch between the live WYSIWYG surface and the raw-Markdown source surface.
+ * Text flows WYSIWYG → source on entry, and source → WYSIWYG on exit so edits
+ * made in either view are never lost.
+ */
+async function toggleSource(): Promise<void> {
+  if (sourceSwitching) return
+  sourceSwitching = true
+  try {
+    if (!sourceMode) {
+      // Handlers must be attached before mount: mount emits the initial cursor
+      // position, which would otherwise hit the no-op default handler.
+      source.setChangeHandler(onSourceChange)
+      source.setCursorHandler(renderCursor)
+      source.mount(editor.getMarkdown(), theme, reading)
+      sourceMode = true
+      document.body.classList.add('source-mode')
+      el.host.classList.add('hidden')
+      el.sourceHost.classList.remove('hidden')
+      el.mode.textContent = 'Source'
+      source.focus()
+    } else {
+      const markdown = source.getText()
+      document.body.classList.remove('source-mode')
+      el.sourceHost.classList.add('hidden')
+      el.host.classList.remove('hidden')
+      el.mode.textContent = ''
+      el.cursor.textContent = ''
+      // editor.load() destroys and recreates the live view, which takes real
+      // time on a large document. sourceMode stays true until the live view
+      // holds the source text, so a Save (or save-before-close) that lands
+      // mid-swap still reads the mounted source view via currentMarkdown()
+      // instead of a half-rebuilt editor's stale fallback.
+      await editor.load(markdown)
+      sourceMode = false
+      source.unmount()
+      editor.focus()
+    }
+  } finally {
+    sourceSwitching = false
+  }
+}
+
+function applyLineNumbers(enabled: boolean): void {
+  document.body.classList.toggle('no-line-numbers', !enabled)
 }
 
 function applyZoom(): void {
@@ -179,9 +263,12 @@ const commands: Record<MenuCommand, () => void> = {
   open: () => void openFile(),
   save: () => void save(),
   saveAs: () => void saveAs(),
-  find: () => find.show(),
+  // The WYSIWYG find bar walks ProseMirror text nodes; in source mode use
+  // CodeMirror's own search panel, which understands its virtualized document.
+  find: () => (sourceMode ? source.openSearch() : find.show()),
   toggleTheme,
   toggleReading,
+  toggleSource: () => void toggleSource(),
   zoomIn,
   zoomOut,
   zoomReset
@@ -197,6 +284,14 @@ async function init(): Promise<void> {
   }
   applyTheme(theme)
   el.themeLabel.textContent = theme === 'dark' ? 'Dark' : 'Light'
+
+  let lineNumbersOn = true
+  try {
+    lineNumbersOn = await window.api.getLineNumbers()
+  } catch {
+    lineNumbersOn = true
+  }
+  applyLineNumbers(lineNumbersOn)
 
   // Resolve the startup file BEFORE mounting so the editor is created exactly
   // once with the correct content. This avoids a mount-welcome-then-reload
@@ -222,6 +317,8 @@ async function init(): Promise<void> {
     setDoc(createEmptyDocument())
   }
 
+  source = new SourceView(el.sourceHost)
+
   find = new FindController(el.host, {
     bar: document.getElementById('find-bar') as HTMLElement,
     input: document.getElementById('find-input') as HTMLInputElement,
@@ -233,6 +330,7 @@ async function init(): Promise<void> {
 
   // Wire IPC from main.
   window.api.onMenuCommand((command) => commands[command]?.())
+  window.api.onLineNumbers((enabled) => applyLineNumbers(enabled))
   window.api.onOpenPath(async (path) => {
     if (!confirmDiscardIfDirty()) return
     const opened = await window.api.readFile(path)
@@ -246,8 +344,10 @@ async function init(): Promise<void> {
   // Clickable theme label in the status bar.
   el.themeLabel.addEventListener('click', toggleTheme)
 
-  // In-renderer accelerator safety net for find focus.
+  // In-renderer accelerator safety net for find focus. In source mode the
+  // keystroke is left to CodeMirror's own search keymap.
   window.addEventListener('keydown', (e) => {
+    if (sourceMode) return
     if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
       e.preventDefault()
       find.show()

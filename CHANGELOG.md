@@ -2,6 +2,20 @@
 
 All notable changes to MDView are documented here.
 
+## [1.1.0] — 2026-09-23
+
+### Added
+- **Source Mode** (**View → Source Mode**, `Ctrl+E`): view and edit the raw
+  Markdown with a line-number gutter, Markdown syntax highlighting (including
+  fenced code), search (`Ctrl+F` opens the source search panel), and undo
+  history. The status bar shows the cursor's `Ln, Col`. Edits flow both ways —
+  switching back re-renders the live view from the source text, and saving
+  always writes whichever view you are editing.
+- **View → Line Numbers** checkbox: hides or shows the line-number gutter in
+  both the source view and the live view's fenced code blocks instantly; on by
+  default and remembered. (Live code blocks have always been numbered once
+  you click into them; this makes that gutter switchable.)
+
 ## [1.0.3] — 2026-07-16
 
 ### Changed

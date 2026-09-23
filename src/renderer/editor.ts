@@ -1,6 +1,22 @@
 import { Crepe } from '@milkdown/crepe'
 import '@milkdown/crepe/theme/common/style.css'
 
+type CrepeOptions = NonNullable<ConstructorParameters<typeof Crepe>[0]>
+
+/**
+ * Crepe options shared by mount and load so every instance is configured the
+ * same way.
+ *
+ * Fenced code blocks already carry a line-number gutter: Crepe builds each live
+ * CodeMirror block from `basicSetup`, which includes `lineNumbers()`. Injecting
+ * it again via `featureConfigs` renders a second, duplicate gutter — so no
+ * extension is added here. Gutter visibility is governed by the
+ * `body.no-line-numbers` class, which applies instantly without a rebuild.
+ */
+function crepeOptions(root: HTMLElement, defaultValue: string): CrepeOptions {
+  return { root, defaultValue }
+}
+
 /**
  * Thin wrapper around Milkdown Crepe.
  *
@@ -32,7 +48,7 @@ export class MarkdownEditor {
   /** Create and mount an editor in `host` with the given initial markdown. */
   static async mount(host: HTMLElement, initial = ''): Promise<MarkdownEditor> {
     host.replaceChildren()
-    const crepe = new Crepe({ root: host, defaultValue: initial })
+    const crepe = new Crepe(crepeOptions(host, initial))
     await crepe.create()
     const editor = new MarkdownEditor(host, crepe, initial)
     editor.wireEvents()
@@ -87,7 +103,7 @@ export class MarkdownEditor {
       // Hard-reset the host so no orphaned nodes (incl. injected <style>) from
       // the destroyed instance can survive into the next mount.
       this.host.replaceChildren()
-      this.crepe = new Crepe({ root: this.host, defaultValue: markdown })
+      this.crepe = new Crepe(crepeOptions(this.host, markdown))
       await this.crepe.create()
       this.lastMarkdown = markdown
       this.wireEvents()

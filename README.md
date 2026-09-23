@@ -46,7 +46,16 @@ images, and links all work.
 | Ctrl + Shift + S | Save As |
 | Ctrl + F | Find in document |
 | Ctrl + / | Reading mode (read-only) |
+| Ctrl + E | Source mode — raw Markdown with line numbers |
 | Ctrl + \ | Toggle light / dark theme |
+
+The live view renders Markdown in place, so it has no fixed lines to number.
+**Source Mode** (`Ctrl+E`) shows the raw Markdown in a text editor with a
+numbered gutter and syntax highlighting; edits made there carry back to the
+live view when you switch out, and Save writes whichever view is active. In the
+live view, fenced code blocks are numbered as well — the gutter appears once you
+click into a block. Both gutters are governed by **View → Line Numbers** (on by
+default, remembered).
 
 Spell checking is off by default, since Markdown documents tend to be full of
 code and identifiers that a dictionary flags as misspellings. Turn it on from

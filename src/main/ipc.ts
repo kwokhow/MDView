@@ -7,7 +7,7 @@ import {
   saveViaDialog,
   addRecentDocument
 } from './files'
-import { getTheme, setTheme, setLastFile } from './settings'
+import { getTheme, setTheme, setLastFile, getLineNumbers } from './settings'
 
 /** Callbacks the window owner provides so IPC can update per-window state. */
 interface IpcHooks {
@@ -76,6 +76,8 @@ export function registerIpc(hooks: IpcHooks): void {
   })
 
   ipcMain.handle(IpcInvoke.themeGet, (): ThemeName => getTheme())
+
+  ipcMain.handle(IpcInvoke.lineNumbersGet, (): boolean => getLineNumbers())
 
   ipcMain.on(IpcInvoke.themeSet, (_event, theme: ThemeName) => {
     setTheme(theme)

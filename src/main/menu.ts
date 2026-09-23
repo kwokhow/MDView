@@ -1,7 +1,7 @@
 import { Menu, BrowserWindow, shell, type MenuItemConstructorOptions } from 'electron'
 import { IpcSend, type MenuCommand } from '../shared/types'
 import { showAbout } from './about'
-import { getSpellcheck, setSpellcheck } from './settings'
+import { getSpellcheck, setSpellcheck, getLineNumbers, setLineNumbers } from './settings'
 
 /** Send a menu command to the focused window's renderer. */
 function dispatch(command: MenuCommand): void {
@@ -21,6 +21,19 @@ function toggleSpellcheck(item: Electron.MenuItem): void {
   item.checked = enabled
   for (const win of BrowserWindow.getAllWindows()) {
     win.webContents.session.setSpellCheckerEnabled(enabled)
+  }
+}
+
+/**
+ * Persist the line-number preference and push it to every renderer, which
+ * applies it instantly to both the source view and fenced code blocks.
+ */
+function toggleLineNumbers(item: Electron.MenuItem): void {
+  const enabled = !getLineNumbers()
+  setLineNumbers(enabled)
+  item.checked = enabled
+  for (const win of BrowserWindow.getAllWindows()) {
+    win.webContents.send(IpcSend.lineNumbers, enabled)
   }
 }
 
@@ -56,9 +69,16 @@ export function buildMenu(): void {
     {
       label: 'View',
       submenu: [
+        { label: 'Source Mode', accelerator: 'CmdOrCtrl+E', click: () => dispatch('toggleSource') },
         { label: 'Reading Mode', accelerator: 'CmdOrCtrl+/', click: () => dispatch('toggleReading') },
         { label: 'Toggle Theme', accelerator: 'CmdOrCtrl+\\', click: () => dispatch('toggleTheme') },
         { type: 'separator' },
+        {
+          label: 'Line Numbers',
+          type: 'checkbox',
+          checked: getLineNumbers(),
+          click: (item) => toggleLineNumbers(item)
+        },
         {
           label: 'Check Spelling',
           type: 'checkbox',

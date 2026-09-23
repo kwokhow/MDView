@@ -14,14 +14,16 @@ export const IpcInvoke = {
   themeGet: 'theme:get',
   themeSet: 'theme:set',
   confirmClose: 'app:confirmClose',
-  startupFile: 'app:startupFile'
+  startupFile: 'app:startupFile',
+  lineNumbersGet: 'view:lineNumbersGet'
 } as const
 
 /** IPC channels pushed from main to the renderer (fire and forget). */
 export const IpcSend = {
   menuCommand: 'menu:command',
   openPath: 'file:openPath',
-  requestSaveBeforeClose: 'app:requestSaveBeforeClose'
+  requestSaveBeforeClose: 'app:requestSaveBeforeClose',
+  lineNumbers: 'view:lineNumbers'
 } as const
 
 /** Commands the application menu / shortcuts dispatch to the renderer. */
@@ -33,6 +35,7 @@ export type MenuCommand =
   | 'find'
   | 'toggleTheme'
   | 'toggleReading'
+  | 'toggleSource'
   | 'zoomIn'
   | 'zoomOut'
   | 'zoomReset'
@@ -75,6 +78,10 @@ export interface MdViewApi {
   getTheme: () => Promise<ThemeName>
   /** Persist the theme. */
   setTheme: (theme: ThemeName) => void
+  /** Read the persisted line-number preference (source view + code blocks). */
+  getLineNumbers: () => Promise<boolean>
+  /** Subscribe to line-number preference changes made from the View menu. */
+  onLineNumbers: (handler: (enabled: boolean) => void) => () => void
   /** Subscribe to menu/shortcut commands from main. Returns an unsubscribe fn. */
   onMenuCommand: (handler: (command: MenuCommand) => void) => () => void
   /** Subscribe to "open this path" requests (CLI arg, jump list, second instance). */

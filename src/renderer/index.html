@@ -11,7 +11,11 @@
   </head>
   <body>
     <div id="app">
+      <!-- Live WYSIWYG surface (Milkdown Crepe) -->
       <main id="editor-host"></main>
+
+      <!-- Raw-Markdown source surface with line numbers (CodeMirror); shown in Source Mode -->
+      <div id="source-host" class="hidden"></div>
 
       <!-- Find overlay -->
       <div id="find-bar" class="find-bar hidden" role="search">
@@ -25,7 +29,9 @@
       <!-- Status bar -->
       <footer id="status-bar">
         <span id="status-name">Untitled</span>
+        <span id="status-mode" class="status-mode"></span>
         <span class="status-spacer"></span>
+        <span id="status-cursor" class="status-cursor"></span>
         <span id="status-words">0 words</span>
         <span id="status-chars">0 characters</span>
         <span id="status-theme" class="status-clickable" title="Toggle theme (Ctrl+\)">Light</span>

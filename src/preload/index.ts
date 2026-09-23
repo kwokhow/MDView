@@ -27,8 +27,14 @@ const api: MdViewApi = {
     ipcRenderer.invoke(IpcInvoke.startupFile) as Promise<OpenedFile | null>,
   getTheme: () => ipcRenderer.invoke(IpcInvoke.themeGet) as Promise<ThemeName>,
   setTheme: (theme: ThemeName) => ipcRenderer.send(IpcInvoke.themeSet, theme),
+  getLineNumbers: () => ipcRenderer.invoke(IpcInvoke.lineNumbersGet) as Promise<boolean>,
   confirmClose: () => ipcRenderer.send(IpcInvoke.confirmClose),
 
+  onLineNumbers: (handler: (enabled: boolean) => void) => {
+    const listener = (_e: Electron.IpcRendererEvent, enabled: boolean) => handler(enabled)
+    ipcRenderer.on(IpcSend.lineNumbers, listener)
+    return () => ipcRenderer.removeListener(IpcSend.lineNumbers, listener)
+  },
   onMenuCommand: (handler: (command: MenuCommand) => void) => {
     const listener = (_e: Electron.IpcRendererEvent, command: MenuCommand) => handler(command)
     ipcRenderer.on(IpcSend.menuCommand, listener)

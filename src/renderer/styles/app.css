@@ -241,3 +241,87 @@ body.reading #editor-host .milkdown .ProseMirror {
 #editor-host::-webkit-scrollbar-thumb:hover {
   background: var(--chrome-fg);
 }
+
+/* ---- Surface switching (WYSIWYG ⇄ Source Mode) ---- */
+#editor-host.hidden,
+#source-host.hidden {
+  display: none;
+}
+
+/* ---- Source Mode: raw Markdown with a line-number gutter ---- */
+#source-host {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--chrome-bg);
+}
+
+#source-host .cm-editor {
+  flex: 1 1 auto;
+  height: 100%;
+  font-size: calc(0.9em * var(--app-zoom));
+}
+
+#source-host .cm-editor.cm-focused {
+  outline: none;
+}
+
+#source-host .cm-scroller {
+  font-family: Consolas, 'Cascadia Code', 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  line-height: 1.65;
+}
+
+#source-host .cm-content {
+  padding: 20px 0 96px;
+}
+
+#source-host .cm-gutters {
+  padding-left: 6px;
+  user-select: none;
+}
+
+/* ---- Line-number gutters ----
+   One View → Line Numbers switch drives both the source view and fenced code
+   blocks; toggling a body class is instant and needs no editor rebuild. */
+#editor-host .milkdown .cm-gutters {
+  background: transparent;
+  border-right: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+  color: var(--chrome-fg);
+  opacity: 0.65;
+  padding-right: 4px;
+  user-select: none;
+}
+
+/* Source view: the number gutter is its only gutter, so hide the strip. */
+body.no-line-numbers #source-host .cm-gutters {
+  display: none;
+}
+
+/* Live-view code blocks: hide only the numbers so the fold gutter survives. */
+body.no-line-numbers #editor-host .cm-lineNumbers {
+  display: none;
+}
+
+/* ---- Status bar extras ---- */
+.status-mode {
+  padding: 1px 7px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--chrome-accent);
+  background: color-mix(in srgb, var(--chrome-accent) 12%, transparent);
+}
+
+.status-mode:empty {
+  display: none;
+}
+
+.status-cursor {
+  font-variant-numeric: tabular-nums;
+}
+
+.status-cursor:empty {
+  display: none;
+}

@@ -1,13 +1,14 @@
 import Store from 'electron-store'
 import type { ThemeName } from '../shared/types'
 
-/** Persisted app settings: window geometry + theme + last opened file. */
+/** Persisted app settings: window geometry, theme, last file, view preferences. */
 interface SettingsSchema {
   windowBounds: { width: number; height: number; x?: number; y?: number }
   maximized: boolean
   theme: ThemeName
   lastFile: string | null
   spellcheck: boolean
+  lineNumbers: boolean
 }
 
 const store = new Store<SettingsSchema>({
@@ -18,7 +19,9 @@ const store = new Store<SettingsSchema>({
     lastFile: null,
     // Off by default: Markdown documents are full of code, identifiers and
     // product names that the dictionary flags as misspellings.
-    spellcheck: false
+    spellcheck: false,
+    // On by default: numbered gutters in source mode and in fenced code blocks.
+    lineNumbers: true
   }
 })
 
@@ -53,6 +56,15 @@ export function getSpellcheck(): boolean {
 
 export function setSpellcheck(value: boolean): void {
   store.set('spellcheck', value)
+}
+
+/** Whether line-number gutters are shown (source view and code blocks). */
+export function getLineNumbers(): boolean {
+  return store.get('lineNumbers')
+}
+
+export function setLineNumbers(value: boolean): void {
+  store.set('lineNumbers', value)
 }
 
 /** Absolute path of the most recently opened/saved file, or null. */
