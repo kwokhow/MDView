@@ -3,22 +3,31 @@
  * Keeping these in one place keeps the IPC contract type-safe end to end.
  */
 
-/** IPC channels invoked from the renderer and handled in main (request/response). */
+/** Request/response channels: renderer invokes, main handles and replies. */
 export const IpcInvoke = {
   fileOpenDialog: 'file:openDialog',
   fileRead: 'file:read',
   fileSave: 'file:save',
   fileSaveAs: 'file:saveAs',
-  docSetDirty: 'doc:setDirty',
-  recentAdd: 'recent:add',
+  startupFiles: 'app:startupFiles',
+  askSaveChanges: 'app:askSaveChanges',
   themeGet: 'theme:get',
-  themeSet: 'theme:set',
-  confirmClose: 'app:confirmClose',
-  startupFile: 'app:startupFile',
+  prefsGet: 'prefs:get',
   lineNumbersGet: 'view:lineNumbersGet'
 } as const
 
-/** IPC channels pushed from main to the renderer (fire and forget). */
+/** Fire-and-forget channels: renderer notifies main. */
+export const IpcNotify = {
+  docSetDirty: 'doc:setDirty',
+  recentAdd: 'recent:add',
+  themeSet: 'theme:set',
+  prefsSet: 'prefs:set',
+  sessionSet: 'session:set',
+  confirmClose: 'app:confirmClose',
+  openExternal: 'app:openExternal'
+} as const
+
+/** Fire-and-forget channels: main pushes to the renderer. */
 export const IpcSend = {
   menuCommand: 'menu:command',
   openPath: 'file:openPath',
@@ -26,23 +35,68 @@ export const IpcSend = {
   lineNumbers: 'view:lineNumbers'
 } as const
 
-/** Commands the application menu / shortcuts dispatch to the renderer. */
+/** Commands the application menu, toolbar and shortcuts dispatch to the renderer. */
 export type MenuCommand =
   | 'new'
   | 'open'
   | 'save'
   | 'saveAs'
+  | 'saveAll'
+  | 'closeTab'
+  | 'nextTab'
+  | 'prevTab'
+  | 'undo'
+  | 'redo'
+  | 'selectAll'
   | 'find'
+  | 'bold'
+  | 'italic'
+  | 'strike'
+  | 'code'
+  | 'link'
+  | 'heading1'
+  | 'heading2'
+  | 'heading3'
+  | 'bulletList'
+  | 'orderedList'
+  | 'taskList'
+  | 'quote'
+  | 'codeBlock'
+  | 'table'
+  | 'hr'
+  | 'viewEditor'
+  | 'viewSplit'
+  | 'viewPreview'
+  | 'toggleSync'
+  | 'toggleSidebar'
   | 'toggleTheme'
-  | 'toggleReading'
-  | 'toggleSource'
   | 'zoomIn'
   | 'zoomOut'
   | 'zoomReset'
 
 export type ThemeName = 'light' | 'dark'
 
-/** Result of opening a file (dialog or path). null path => user cancelled. */
+/** Which panes are visible: raw editor, both side by side, or formatted preview. */
+export type ViewMode = 'editor' | 'split' | 'preview'
+
+/** Persisted layout preferences owned by the renderer. */
+export interface ViewPrefs {
+  mode: ViewMode
+  /** Editor share of the split width, 0.15–0.85. */
+  splitRatio: number
+  syncScroll: boolean
+  sidebar: boolean
+  /** Text scale for editor and preview, 0.7–2. */
+  zoom: number
+}
+
+/** The open tabs to restore on next launch. */
+export interface SessionState {
+  paths: string[]
+  activePath: string | null
+}
+
+/** Result of opening a file. */
 export interface OpenedFile {
   path: string
   content: string
@@ -53,41 +107,53 @@ export interface SavedFile {
   path: string
 }
 
+/** Files to open on launch (restored session plus any "open with" file). */
+export interface StartupFiles {
+  files: OpenedFile[]
+  activePath: string | null
+}
+
+/** Answer to "save changes before closing this document?". */
+export type SaveChoice = 'save' | 'discard' | 'cancel'
+
 /** The shape exposed on window.api by the preload bridge. */
 export interface MdViewApi {
-  /** Show the open dialog, return the chosen file's path + content, or null if cancelled. */
-  openFileDialog: () => Promise<OpenedFile | null>
+  /** Show the open dialog (multi-select); resolves to the files read, [] if cancelled. */
+  openFileDialog: () => Promise<OpenedFile[]>
   /** Read a file's text content by absolute path. */
   readFile: (path: string) => Promise<OpenedFile>
   /** Save content to an existing path. */
   saveFile: (path: string, content: string) => Promise<void>
   /** Show save-as dialog, write content, return new path or null if cancelled. */
   saveFileAs: (content: string, suggestedName?: string) => Promise<SavedFile | null>
-  /** Inform main whether the current document has unsaved changes. */
+  /** Restored session plus any file passed on the command line, already read. */
+  getStartupFiles: () => Promise<StartupFiles>
+  /** Native Save / Don't Save / Cancel prompt for one document. */
+  askSaveChanges: (name: string) => Promise<SaveChoice>
+  getTheme: () => Promise<ThemeName>
+  setTheme: (theme: ThemeName) => void
+  getPrefs: () => Promise<ViewPrefs>
+  setPrefs: (prefs: ViewPrefs) => void
+  /** Read the persisted line-number preference (editor gutter). */
+  getLineNumbers: () => Promise<boolean>
+  /** Persist which files are open so the next launch restores them. */
+  setSession: (session: SessionState) => void
+  /** Inform main whether any open document has unsaved changes. */
   setDirty: (dirty: boolean) => void
   /** Add a path to the OS recent-documents / jump list. */
   addRecent: (path: string) => void
-  /**
-   * The file to open on startup (CLI/"open with" arg, else the last session's
-   * file if it still exists), already read. null if there is none — the
-   * renderer then shows the welcome document. Resolved once, before mount, so
-   * the editor mounts a single time with the correct content.
-   */
-  getStartupFile: () => Promise<OpenedFile | null>
-  /** Read the persisted theme. */
-  getTheme: () => Promise<ThemeName>
-  /** Persist the theme. */
-  setTheme: (theme: ThemeName) => void
-  /** Read the persisted line-number preference (source view + code blocks). */
-  getLineNumbers: () => Promise<boolean>
+  /** Open an http(s)/mailto link in the system browser. Other schemes are ignored. */
+  openExternal: (url: string) => void
+  /** Absolute path of a file dropped onto the window. */
+  getPathForFile: (file: File) => string
   /** Subscribe to line-number preference changes made from the View menu. */
   onLineNumbers: (handler: (enabled: boolean) => void) => () => void
   /** Subscribe to menu/shortcut commands from main. Returns an unsubscribe fn. */
   onMenuCommand: (handler: (command: MenuCommand) => void) => () => void
-  /** Subscribe to "open this path" requests (CLI arg, jump list, second instance). */
+  /** Subscribe to "open this path" requests (second instance, jump list). */
   onOpenPath: (handler: (path: string) => void) => () => void
   /** Subscribe to a save-before-close request from main; reply via confirmClose. */
   onRequestSaveBeforeClose: (handler: () => void) => () => void
-  /** Tell main it is safe to close the window now (after a save completed). */
+  /** Tell main it is safe to close the window now (after saves completed). */
   confirmClose: () => void
 }

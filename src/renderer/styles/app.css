@@ -1,26 +1,109 @@
+/* ============================================================
+   Design tokens. Every colour in the app (chrome, editor, preview)
+   comes from these, so the theme switch is one attribute.
+   ============================================================ */
 :root {
-  --app-zoom: 1;
+  --font-ui: 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'Cascadia Mono', 'Cascadia Code', Consolas, 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  --content-zoom: 1;
+  --sidebar-width: 244px;
 
-  /* App chrome — light defaults. Crepe handles the editor surface itself. */
-  --chrome-bg: #ffffff;
-  --chrome-fg: #57606a;
-  --chrome-border: #e1e4e8;
-  --chrome-bar-bg: #f6f8fa;
-  --chrome-accent: #0969da;
-  --find-all-bg: #fff3b0;
-  --find-current-bg: #ff9632;
+  --bg: #ffffff;
+  --bg-subtle: #f6f8fa;
+  --bg-muted: #eef1f4;
+  --bg-emphasis: #e2e7ec;
+  --border: #d5dbe1;
+  --border-subtle: #e7ebef;
+  --fg: #1f2328;
+  --fg-muted: #59636e;
+  --fg-subtle: #8c959f;
+  --accent: #0969da;
+  --accent-subtle: #ddf4ff;
+  --danger: #cf222e;
+  --attention: #9a6700;
+  --shadow: 0 8px 24px rgba(66, 74, 83, 0.14), 0 1px 3px rgba(66, 74, 83, 0.1);
+
+  --editor-bg: #ffffff;
+  --editor-active-line: rgba(234, 238, 242, 0.55);
+  --editor-selection: #c8e1ff;
+  --editor-match: rgba(84, 174, 255, 0.22);
+  --editor-gutter-fg: #aab2bb;
+  --editor-code-bg: rgba(175, 184, 193, 0.12);
+
+  --code-bg: #f6f8fa;
+  --inline-code-bg: rgba(129, 139, 152, 0.14);
+  --mark-bg: #fff8c5;
+  --find-all-bg: rgba(255, 223, 93, 0.55);
+  --find-all-border: rgba(212, 167, 44, 0.45);
+  --find-current-bg: rgba(255, 153, 0, 0.55);
+
+  --tok-heading: #0550ae;
+  --tok-link: #0969da;
+  --tok-url: #59636e;
+  --tok-code: #953800;
+  --tok-mark: #8c959f;
+  --tok-keyword: #cf222e;
+  --tok-string: #0a3069;
+  --tok-comment: #6e7781;
+  --tok-constant: #0550ae;
+  --tok-function: #8250df;
+  --tok-builtin: #953800;
+  --tok-tag: #116329;
+  --tok-bullet: #9a6700;
+
+  color-scheme: light;
 }
 
 :root[data-theme='dark'] {
-  --chrome-bg: #1c1f24;
-  --chrome-fg: #9da5b4;
-  --chrome-border: #30363d;
-  --chrome-bar-bg: #161b22;
-  --chrome-accent: #58a6ff;
-  --find-all-bg: #5a4a00;
-  --find-current-bg: #b86b00;
+  --bg: #0d1117;
+  --bg-subtle: #151b23;
+  --bg-muted: #1f2630;
+  --bg-emphasis: #29313c;
+  --border: #30363d;
+  --border-subtle: #232a33;
+  --fg: #e6edf3;
+  --fg-muted: #9198a1;
+  --fg-subtle: #6e7681;
+  --accent: #4493f8;
+  --accent-subtle: rgba(56, 139, 253, 0.16);
+  --danger: #f85149;
+  --attention: #d29922;
+  --shadow: 0 8px 24px rgba(1, 4, 9, 0.6), 0 1px 3px rgba(1, 4, 9, 0.4);
+
+  --editor-bg: #0d1117;
+  --editor-active-line: rgba(110, 118, 129, 0.1);
+  --editor-selection: rgba(56, 139, 253, 0.35);
+  --editor-match: rgba(56, 139, 253, 0.22);
+  --editor-gutter-fg: #495260;
+  --editor-code-bg: rgba(110, 118, 129, 0.1);
+
+  --code-bg: #151b23;
+  --inline-code-bg: rgba(110, 118, 129, 0.35);
+  --mark-bg: rgba(187, 128, 9, 0.35);
+  --find-all-bg: rgba(187, 128, 9, 0.45);
+  --find-all-border: rgba(210, 153, 34, 0.5);
+  --find-current-bg: rgba(219, 109, 40, 0.65);
+
+  --tok-heading: #79c0ff;
+  --tok-link: #4493f8;
+  --tok-url: #9198a1;
+  --tok-code: #ffa657;
+  --tok-mark: #6e7681;
+  --tok-keyword: #ff7b72;
+  --tok-string: #a5d6ff;
+  --tok-comment: #8b949e;
+  --tok-constant: #79c0ff;
+  --tok-function: #d2a8ff;
+  --tok-builtin: #ffa657;
+  --tok-tag: #7ee787;
+  --tok-bullet: #f2cc60;
+
+  color-scheme: dark;
 }
 
+/* ============================================================
+   Shell layout: sidebar | main, status bar across the bottom.
+   ============================================================ */
 * {
   box-sizing: border-box;
 }
@@ -32,121 +115,647 @@ body {
 }
 
 body {
-  font-family: -apple-system, 'Segoe UI', system-ui, Roboto, Helvetica, Arial, sans-serif;
-  background: var(--chrome-bg);
-  color: var(--chrome-fg);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--fg);
+  background: var(--bg);
   overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font: inherit;
 }
 
 #app {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) 26px;
+  height: 100vh;
+}
+
+body.no-sidebar #app {
+  grid-template-columns: 0 minmax(0, 1fr);
+}
+
+body.no-sidebar #sidebar {
+  visibility: hidden;
+  border: 0;
+}
+
+body.resizing,
+body.resizing * {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+
+/* ============================================================
+   Sidebar: brand, open files, outline.
+   ============================================================ */
+#sidebar {
+  grid-row: 1;
+  grid-column: 1;
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--bg-subtle);
+  border-right: 1px solid var(--border);
+}
+
+.sidebar-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 38px;
+  padding: 0 6px 0 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 13.5px;
+  letter-spacing: 0.01em;
+}
+
+.brand img {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+}
+
+.icon-btn {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+
+.icon-btn:hover {
+  background: var(--bg-muted);
+  color: var(--fg);
+}
+
+.side-section {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* The file list keeps its natural height (up to 40%, then scrolls); the
+   outline takes whatever is left, however long the document is. */
+.side-files {
+  flex: 0 0 auto;
+  max-height: 40%;
+}
+
+.side-files .file-list {
+  min-height: 0;
+}
+
+.side-outline {
+  flex: 1 1 0;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.side-title {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 14px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--fg-subtle);
+}
+
+.side-count {
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--bg-emphasis);
+  color: var(--fg-muted);
+  font-size: 10.5px;
+  letter-spacing: 0;
+  line-height: 16px;
+}
+
+.file-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 6px 8px;
+  overflow-y: auto;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 4px 0 8px;
+  border-radius: 6px;
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+
+.file-item > svg {
+  flex: 0 0 auto;
+  color: var(--fg-subtle);
+}
+
+.file-item:hover {
+  background: var(--bg-muted);
+  color: var(--fg);
+}
+
+.file-item.active {
+  background: var(--accent-subtle);
+  color: var(--fg);
+}
+
+.file-item.active > svg {
+  color: var(--accent);
+}
+
+.file-label,
+.tab-label {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.file-name,
+.tab-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-hint,
+.tab-hint {
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--fg-subtle);
+  font-size: 11px;
+}
+
+.outline {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 6px 16px;
+}
+
+.outline-item {
+  display: block;
+  width: 100%;
+  padding: 4px 8px 4px calc(10px + var(--depth, 0) * 13px);
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg-muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.outline-item:hover {
+  background: var(--bg-muted);
+  color: var(--fg);
+}
+
+.outline-item.lvl-1 {
+  color: var(--fg);
+  font-weight: 600;
+}
+
+.outline-item.active {
+  background: var(--accent-subtle);
+  color: var(--accent);
+}
+
+.outline-empty {
+  margin: 4px 14px;
+  color: var(--fg-subtle);
+  font-size: 12px;
+}
+
+/* ============================================================
+   Main column: tabs, toolbar, panes.
+   ============================================================ */
+#main {
+  grid-row: 1;
+  grid-column: 2;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.tabbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: stretch;
+  height: 38px;
+  background: var(--bg-subtle);
+  border-bottom: 1px solid var(--border);
+}
+
+.tabs {
+  display: flex;
+  min-width: 0;
+  flex: 0 1 auto;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 120px;
+  max-width: 230px;
+  padding: 0 6px 0 14px;
+  border-right: 1px solid var(--border-subtle);
+  color: var(--fg-muted);
+  font-size: 12.5px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.tab:hover {
+  background: var(--bg-muted);
+  color: var(--fg);
+}
+
+.tab.active {
+  background: var(--bg);
+  color: var(--fg);
+}
+
+/* Accent line on top; the tab merges into the toolbar below it. */
+.tab.active::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: var(--accent);
+}
+
+.tab.active::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 -1px;
+  height: 1px;
+  background: var(--bg);
+}
+
+.tab-close,
+.file-close {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--fg-subtle);
+  cursor: pointer;
+  opacity: 0;
+}
+
+.tab:hover .tab-close,
+.tab.active .tab-close,
+.tab.dirty .tab-close,
+.file-item:hover .file-close,
+.file-item.dirty .file-close {
+  opacity: 1;
+}
+
+.tab-close:hover,
+.file-close:hover {
+  background: var(--bg-emphasis);
+  color: var(--fg);
+}
+
+/* Unsaved: a dot in place of the ×, which returns on hover. */
+.tab.dirty .tab-close > svg,
+.file-item.dirty .file-close > svg {
+  display: none;
+}
+
+.tab.dirty .tab-close::after,
+.file-item.dirty .file-close::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--fg-muted);
+}
+
+.tab.dirty .tab-close:hover > svg,
+.file-item.dirty .file-close:hover > svg {
+  display: block;
+}
+
+.tab.dirty .tab-close:hover::after,
+.file-item.dirty .file-close:hover::after {
+  display: none;
+}
+
+.tab-new {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  border: 0;
+  background: transparent;
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+
+.tab-new:hover {
+  background: var(--bg-muted);
+  color: var(--fg);
+}
+
+/* The view controls on the right always stay visible; when the window is
+   narrow the formatting buttons scroll (mouse wheel) instead of pushing
+   them off-screen, and the view labels collapse to icons. */
+.toolbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  height: 42px;
+  padding: 0 8px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+  container: toolbar / inline-size;
+}
+
+.tb-edit {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.tb-edit::-webkit-scrollbar {
+  display: none;
+}
+
+.tb-view {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-left: 8px;
+}
+
+@container toolbar (max-width: 820px) {
+  .seg-btn > span,
+  .tb-toggle > span {
+    display: none;
+  }
+
+  .seg-btn,
+  .tb-toggle {
+    padding: 0 8px;
+  }
+}
+
+.tb-group {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  padding: 0 6px;
+  border-right: 1px solid var(--border-subtle);
+}
+
+.tb-group:first-child {
+  padding-left: 0;
+}
+
+.tb-edit > .tb-group:last-child {
+  border-right: 0;
+}
+
+.tb-btn {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+
+.tb-btn:hover:not(:disabled) {
+  background: var(--bg-muted);
+  color: var(--fg);
+}
+
+.tb-btn:active:not(:disabled) {
+  background: var(--bg-emphasis);
+}
+
+.tb-btn:disabled,
+.tb-toggle:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.segmented {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  margin-right: 8px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.seg-btn,
+.tb-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg-muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.seg-btn:hover {
+  color: var(--fg);
+}
+
+.seg-btn.active {
+  background: var(--bg);
+  color: var(--fg);
+  box-shadow: 0 0 0 1px var(--border), 0 1px 2px rgba(31, 35, 40, 0.08);
+}
+
+.tb-toggle {
+  height: 30px;
+  border: 1px solid transparent;
+}
+
+.tb-toggle:hover:not(:disabled) {
+  background: var(--bg-muted);
+  color: var(--fg);
+}
+
+.tb-toggle.on {
+  background: var(--accent-subtle);
+  color: var(--accent);
+}
+
+/* Panes. --split is set from the saved ratio and while dragging. */
+.workspace {
+  --split: 50%;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
   position: relative;
 }
 
-/* ---- Editor host ---- */
-#editor-host {
+.pane {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+}
+
+.editor-pane {
+  flex: 0 0 var(--split);
+  display: flex;
+  flex-direction: column;
+  background: var(--editor-bg);
+}
+
+.editor-pane .cm-editor {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.divider {
+  flex: 0 0 7px;
+  margin: 0 -3px;
+  position: relative;
+  z-index: 5;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.divider::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 3px;
+  width: 1px;
+  background: var(--border);
+  transition: background 0.12s, left 0.12s, width 0.12s;
+}
+
+.divider:hover::before,
+.divider.dragging::before {
+  left: 2px;
+  width: 3px;
+  background: var(--accent);
+}
+
+.preview-pane {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+.preview-scroller {
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
 }
 
-#editor-host .milkdown {
-  font-size: calc(1em * var(--app-zoom));
+body[data-mode='editor'] .preview-pane,
+body[data-mode='editor'] .divider,
+body[data-mode='preview'] .editor-pane,
+body[data-mode='preview'] .divider {
+  display: none;
 }
 
-/* Comfortable reading column + generous padding. */
-#editor-host .milkdown .ProseMirror,
-#editor-host .milkdown .editor {
-  max-width: 860px;
+body[data-mode='editor'] .editor-pane {
+  flex: 1 1 auto;
+}
+
+/* Preview-only: keep lines to a comfortable reading length on wide screens. */
+body[data-mode='preview'] .markdown-body {
+  max-width: 1080px;
   margin: 0 auto;
-  padding: 40px 32px 96px;
-  /* Looser leading is easier on the eyes for long documents. */
-  line-height: 1.7;
 }
 
-/* Nothing in the document may push past the reading column. */
-#editor-host .milkdown .ProseMirror > * {
-  max-width: 100%;
-}
-
-/* Long URLs and identifiers wrap instead of forcing a horizontal scrollbar. */
-#editor-host .milkdown .ProseMirror p,
-#editor-host .milkdown .ProseMirror li {
-  overflow-wrap: break-word;
-}
-
-/* Fenced code blocks scroll on their own rather than stretching the page. */
-#editor-host .milkdown .milkdown-code-block {
-  max-width: 100%;
-}
-
-#editor-host .milkdown .milkdown-code-block .cm-scroller {
-  overflow-x: auto;
-}
-
-/* Reading mode: hide caret affordances. */
-body.reading #editor-host .milkdown .ProseMirror {
-  caret-color: transparent;
-}
-
-/* ---- Tables ----
-   ProseMirror applies `table-layout: fixed` with explicit per-column pixel
-   widths. Without wrapping, long cell content overflows its column and collides
-   with the neighbouring cell. Allow text to wrap inside cells, and let a table
-   that is genuinely too wide scroll horizontally rather than overlap. */
-#editor-host .milkdown .milkdown-table-block {
-  max-width: 100%;
-  overflow-x: auto;
-}
-
-#editor-host .milkdown .milkdown-table-block table {
-  /* Fill the reading column so columns get sensible widths on first render. */
-  min-width: 100%;
-}
-
-#editor-host .milkdown .milkdown-table-block th,
-#editor-host .milkdown .milkdown-table-block td {
-  /* The actual overlap fix: wrap instead of spilling out of the cell.
-     anywhere (not just break-word) also breaks long unbroken tokens such as
-     snake_case identifiers and URLs, which are common in technical docs and
-     would otherwise still overflow a narrow fixed-width column. */
-  overflow-wrap: anywhere;
-  white-space: normal;
-  vertical-align: top;
-  padding: 8px 12px;
-}
-
-/* Cell children must be allowed to shrink below their content width, otherwise
-   the block's min-content size keeps the text spilling out. */
-#editor-host .milkdown .milkdown-table-block th > *,
-#editor-host .milkdown .milkdown-table-block td > * {
-  overflow-wrap: anywhere;
-  min-width: 0;
-  max-width: 100%;
-}
-
-/* Inline code in a cell should wrap with the text, not extend the column. */
-#editor-host .milkdown .milkdown-table-block code {
-  white-space: normal;
-  overflow-wrap: anywhere;
-}
-
-/* ---- Find bar ---- */
+/* ============================================================
+   Find in preview (preview-only mode).
+   ============================================================ */
 .find-bar {
   position: absolute;
   top: 12px;
-  right: 18px;
+  right: 22px;
+  z-index: 20;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   padding: 6px 8px;
-  background: var(--chrome-bar-bg);
-  border: 1px solid var(--chrome-border);
+  background: var(--bg);
+  border: 1px solid var(--border);
   border-radius: 8px;
-  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.18);
-  z-index: 20;
+  box-shadow: var(--shadow);
 }
 
 .find-bar.hidden {
@@ -154,174 +763,140 @@ body.reading #editor-host .milkdown .ProseMirror {
 }
 
 #find-input {
-  border: 1px solid var(--chrome-border);
-  background: var(--chrome-bg);
-  color: var(--chrome-fg);
-  border-radius: 5px;
-  padding: 5px 8px;
-  font-size: 13px;
   width: 220px;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  font-size: 12.5px;
   outline: none;
 }
 
 #find-input:focus {
-  border-color: var(--chrome-accent);
+  border-color: var(--accent);
 }
 
 .find-count {
+  min-width: 44px;
+  color: var(--fg-muted);
   font-size: 12px;
-  color: var(--chrome-fg);
-  min-width: 42px;
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
 
 .find-btn {
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--chrome-fg);
-  border-radius: 5px;
   padding: 4px 7px;
-  font-size: 12px;
-  cursor: pointer;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--fg-muted);
+  font-size: 11px;
   line-height: 1;
+  cursor: pointer;
 }
 
 .find-btn:hover {
-  background: var(--chrome-bg);
-  border-color: var(--chrome-border);
+  background: var(--bg-muted);
+  color: var(--fg);
 }
 
-/* ---- Find highlights (CSS Custom Highlight API) ---- */
 ::highlight(mdview-find) {
   background-color: var(--find-all-bg);
 }
 
 ::highlight(mdview-find-current) {
   background-color: var(--find-current-bg);
-  color: #000;
 }
 
-/* ---- Status bar ---- */
+/* ============================================================
+   Status bar.
+   ============================================================ */
 #status-bar {
-  flex: 0 0 auto;
+  grid-row: 2;
+  grid-column: 1 / -1;
   display: flex;
   align-items: center;
-  gap: 16px;
-  height: 26px;
-  padding: 0 14px;
-  font-size: 12px;
-  color: var(--chrome-fg);
-  background: var(--chrome-bar-bg);
-  border-top: 1px solid var(--chrome-border);
+  gap: 14px;
+  min-width: 0;
+  padding: 0 8px 0 12px;
+  font-size: 11.5px;
+  color: var(--fg-muted);
+  background: var(--bg-subtle);
+  border-top: 1px solid var(--border);
+  white-space: nowrap;
   user-select: none;
+  overflow: hidden;
+}
+
+.status-path {
+  min-width: 0;
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status-saved.dirty {
+  color: var(--attention);
+}
+
+.status-message.error {
+  color: var(--danger);
+}
+
+.status-message.info {
+  color: var(--accent);
 }
 
 .status-spacer {
   flex: 1 1 auto;
 }
 
-.status-clickable {
-  cursor: pointer;
-}
-
-.status-clickable:hover {
-  color: var(--chrome-accent);
-}
-
-/* Scrollbar polish */
-#editor-host::-webkit-scrollbar {
-  width: 12px;
-}
-#editor-host::-webkit-scrollbar-thumb {
-  background: var(--chrome-border);
-  border: 3px solid var(--chrome-bg);
-  border-radius: 6px;
-}
-#editor-host::-webkit-scrollbar-thumb:hover {
-  background: var(--chrome-fg);
-}
-
-/* ---- Surface switching (WYSIWYG ⇄ Source Mode) ---- */
-#editor-host.hidden,
-#source-host.hidden {
-  display: none;
-}
-
-/* ---- Source Mode: raw Markdown with a line-number gutter ---- */
-#source-host {
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  background: var(--chrome-bg);
-}
-
-#source-host .cm-editor {
-  flex: 1 1 auto;
-  height: 100%;
-  font-size: calc(0.9em * var(--app-zoom));
-}
-
-#source-host .cm-editor.cm-focused {
-  outline: none;
-}
-
-#source-host .cm-scroller {
-  font-family: Consolas, 'Cascadia Code', 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
-  line-height: 1.65;
-}
-
-#source-host .cm-content {
-  padding: 20px 0 96px;
-}
-
-#source-host .cm-gutters {
-  padding-left: 6px;
-  user-select: none;
-}
-
-/* ---- Line-number gutters ----
-   One View → Line Numbers switch drives both the source view and fenced code
-   blocks; toggling a body class is instant and needs no editor rebuild. */
-#editor-host .milkdown .cm-gutters {
-  background: transparent;
-  border-right: 1px solid color-mix(in srgb, currentColor 15%, transparent);
-  color: var(--chrome-fg);
-  opacity: 0.65;
-  padding-right: 4px;
-  user-select: none;
-}
-
-/* Source view: the number gutter is its only gutter, so hide the strip. */
-body.no-line-numbers #source-host .cm-gutters {
-  display: none;
-}
-
-/* Live-view code blocks: hide only the numbers so the fold gutter survives. */
-body.no-line-numbers #editor-host .cm-lineNumbers {
-  display: none;
-}
-
-/* ---- Status bar extras ---- */
-.status-mode {
-  padding: 1px 7px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: var(--chrome-accent);
-  background: color-mix(in srgb, var(--chrome-accent) 12%, transparent);
-}
-
-.status-mode:empty {
-  display: none;
-}
-
-.status-cursor {
+.status-cursor,
+.status-stats {
   font-variant-numeric: tabular-nums;
 }
 
-.status-cursor:empty {
-  display: none;
+.status-btn {
+  padding: 2px 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.status-btn:hover {
+  background: var(--bg-muted);
+  color: var(--fg);
+}
+
+/* ============================================================
+   Scrollbars.
+   ============================================================ */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border: 3px solid transparent;
+  border-radius: 8px;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--fg-subtle);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
 }

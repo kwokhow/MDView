@@ -1,360 +1,215 @@
 import './styles/app.css'
-import { MarkdownEditor } from './editor'
-import { SourceView } from './source-view'
-import { FindController } from './find'
-import { applyTheme, nextTheme } from './theme'
-import {
-  createEmptyDocument,
-  resetDocument,
-  titleFor,
-  withDirty,
-  withSavedPath,
-  type DocumentState
-} from './document'
-import type { MenuCommand, ThemeName } from '../shared/types'
+import './styles/preview.css'
+import logoUrl from '../../build/icon.png'
+import { FilePlus, FolderOpen, Plus } from 'lucide'
+import type { EditorState, TransactionSpec } from '@codemirror/state'
+import type { MenuCommand, StartupFiles, ThemeName, ViewPrefs } from '../shared/types'
+import { insertBlock, insertLink, toggleInline, toggleLineBlock } from './lib/format'
+import { isMarkdownPath } from './lib/paths'
+import { EditorPane } from './ui/editor-pane'
+import { PreviewPane } from './ui/preview-pane'
+import { ScrollSync } from './ui/scroll-sync'
+import { OutlineView } from './ui/outline'
+import { FileList, TabStrip, type TabHandlers } from './ui/tab-views'
+import { StatusBar } from './ui/status-bar'
+import { Layout } from './ui/layout'
+import { Toolbar } from './ui/toolbar'
+import { FindBar } from './ui/find-bar'
+import { applyTheme, nextTheme } from './ui/theme'
+import { icon } from './ui/icons'
+import { Workbench } from './app/workbench'
+import { WELCOME } from './app/welcome'
 
-const WELCOME = `# Welcome to MDView
+const DEFAULT_PREFS: ViewPrefs = { mode: 'split', splitRatio: 0.5, syncScroll: true, sidebar: true, zoom: 1 }
 
-*by KEC*
-
-A **live, what-you-see-is-what-you-get** Markdown editor. Type Markdown and it
-renders in place — no split-pane preview.
-
-## Try it
-- Type \`## \` at the start of a line to make a heading
-- Wrap text in \`**stars**\` for **bold**, \`*one*\` for *italic*
-- Start a line with \`- [ ] \` for a task:
-- [ ] open a file with **Ctrl+O**
-- [x] save with **Ctrl+S**
-
-> Blockquotes, \`inline code\`, tables, and fenced code blocks all work.
-
-| Shortcut | Action |
-| --- | --- |
-| Ctrl+N | New |
-| Ctrl+O | Open |
-| Ctrl+S | Save |
-| Ctrl+F | Find |
-| Ctrl+E | Source mode (raw Markdown with line numbers) |
-| Ctrl+\\\\ | Toggle theme |
-
-\`\`\`js
-function hello(name) {
-  return \`Hello, \${name}!\`
-}
-\`\`\`
-
-Open a \`.md\` file to get started, or just start writing here.
-`
-
-// --- App state (held as immutable snapshots, replaced on change) ---
-let doc: DocumentState = createEmptyDocument()
-let theme: ThemeName = 'light'
-let reading = false
-let zoom = 1
-/** True while the raw-Markdown source surface is the active editor. */
-let sourceMode = false
-/** Guards against re-entrant toggles while a surface switch is in flight. */
-let sourceSwitching = false
-
-let editor!: MarkdownEditor
-let source!: SourceView
-let find!: FindController
-
-const el = {
-  host: document.getElementById('editor-host') as HTMLElement,
-  sourceHost: document.getElementById('source-host') as HTMLElement,
-  name: document.getElementById('status-name') as HTMLElement,
-  mode: document.getElementById('status-mode') as HTMLElement,
-  cursor: document.getElementById('status-cursor') as HTMLElement,
-  words: document.getElementById('status-words') as HTMLElement,
-  chars: document.getElementById('status-chars') as HTMLElement,
-  themeLabel: document.getElementById('status-theme') as HTMLElement
+function byId<T extends HTMLElement = HTMLElement>(id: string): T {
+  const el = document.getElementById(id)
+  if (!el) throw new Error(`Missing element #${id}`)
+  return el as T
 }
 
-// --- UI sync helpers ---
-function renderStatus(markdown: string): void {
-  const words = (markdown.match(/\S+/g) || []).length
-  el.words.textContent = `${words} ${words === 1 ? 'word' : 'words'}`
-  el.chars.textContent = `${markdown.length} ${markdown.length === 1 ? 'character' : 'characters'}`
-}
-
-function renderCursor(line: number, column: number): void {
-  el.cursor.textContent = `Ln ${line}, Col ${column}`
-}
-
-function syncDocUi(): void {
-  document.title = `${titleFor(doc)} — MDView`
-  el.name.textContent = titleFor(doc)
-}
-
-function setDoc(next: DocumentState): void {
-  const wasDirty = doc.dirty
-  doc = next
-  syncDocUi()
-  if (next.dirty !== wasDirty) window.api.setDirty(next.dirty)
-}
-
-/** Markdown from whichever surface the user is currently editing. */
-function currentMarkdown(): string {
-  return sourceMode && source.isMounted ? source.getText() : editor.getMarkdown()
-}
-
-// --- Dirty tracking (debounced refresh of find while open) ---
-let findTimer: ReturnType<typeof setTimeout> | null = null
-function onEditorChange(markdown: string): void {
-  renderStatus(markdown)
-  if (!doc.dirty) setDoc(withDirty(doc, true))
-  if (find.isOpen) {
-    if (findTimer) clearTimeout(findTimer)
-    findTimer = setTimeout(() => find.refresh(), 200)
-  }
-}
-
-function onSourceChange(text: string): void {
-  renderStatus(text)
-  if (!doc.dirty) setDoc(withDirty(doc, true))
-}
-
-// --- File operations ---
-function confirmDiscardIfDirty(): boolean {
-  if (!doc.dirty) return true
-  return window.confirm('You have unsaved changes. Discard them?')
-}
-
-/** Push new content into every active surface. */
-async function setContent(markdown: string): Promise<void> {
-  await editor.load(markdown)
-  if (source.isMounted) source.setText(markdown)
-}
-
-async function loadFromDisk(path: string, content: string): Promise<void> {
-  await setContent(content)
-  const name = path.split(/[\\/]/).pop() || 'Untitled'
-  setDoc(withSavedPath(doc, path, name))
-  renderStatus(content)
-  window.api.addRecent(path)
-  focusActive()
-}
-
-async function newFile(): Promise<void> {
-  if (!confirmDiscardIfDirty()) return
-  await setContent('')
-  setDoc(resetDocument())
-  renderStatus('')
-  focusActive()
-}
-
-async function openFile(): Promise<void> {
-  if (!confirmDiscardIfDirty()) return
-  const opened = await window.api.openFileDialog()
-  if (!opened) return
-  await loadFromDisk(opened.path, opened.content)
-}
-
-/** Save; returns true if the document is now persisted, false if cancelled. */
-async function save(): Promise<boolean> {
-  const markdown = currentMarkdown()
-  if (doc.path) {
-    await window.api.saveFile(doc.path, markdown)
-    setDoc(withDirty(doc, false))
-    return true
-  }
-  return saveAs()
-}
-
-async function saveAs(): Promise<boolean> {
-  const markdown = currentMarkdown()
-  const suggested = doc.name.endsWith('.md') ? doc.name : `${doc.name}.md`
-  const result = await window.api.saveFileAs(markdown, suggested)
-  if (!result) return false
-  const name = result.path.split(/[\\/]/).pop() || 'Untitled'
-  setDoc(withSavedPath(doc, result.path, name))
-  return true
-}
-
-// --- View commands ---
-function focusActive(): void {
-  if (sourceMode) source.focus()
-  else editor.focus()
-}
-
-function toggleTheme(): void {
-  theme = nextTheme(theme)
-  applyTheme(theme)
-  el.themeLabel.textContent = theme === 'dark' ? 'Dark' : 'Light'
-  if (source.isMounted) source.setTheme(theme)
-  window.api.setTheme(theme)
-}
-
-function toggleReading(): void {
-  reading = !reading
-  editor.setReadonly(reading)
-  if (source.isMounted) source.setReadonly(reading)
-  document.body.classList.toggle('reading', reading)
-}
-
-/**
- * Switch between the live WYSIWYG surface and the raw-Markdown source surface.
- * Text flows WYSIWYG → source on entry, and source → WYSIWYG on exit so edits
- * made in either view are never lost.
- */
-async function toggleSource(): Promise<void> {
-  if (sourceSwitching) return
-  sourceSwitching = true
+/** A failed settings read must never stop the editor from starting. */
+async function settle<T>(promise: Promise<T>, fallback: T): Promise<T> {
   try {
-    if (!sourceMode) {
-      // Handlers must be attached before mount: mount emits the initial cursor
-      // position, which would otherwise hit the no-op default handler.
-      source.setChangeHandler(onSourceChange)
-      source.setCursorHandler(renderCursor)
-      source.mount(editor.getMarkdown(), theme, reading)
-      sourceMode = true
-      document.body.classList.add('source-mode')
-      el.host.classList.add('hidden')
-      el.sourceHost.classList.remove('hidden')
-      el.mode.textContent = 'Source'
-      source.focus()
-    } else {
-      const markdown = source.getText()
-      document.body.classList.remove('source-mode')
-      el.sourceHost.classList.add('hidden')
-      el.host.classList.remove('hidden')
-      el.mode.textContent = ''
-      el.cursor.textContent = ''
-      // editor.load() destroys and recreates the live view, which takes real
-      // time on a large document. sourceMode stays true until the live view
-      // holds the source text, so a Save (or save-before-close) that lands
-      // mid-swap still reads the mounted source view via currentMarkdown()
-      // instead of a half-rebuilt editor's stale fallback.
-      await editor.load(markdown)
-      sourceMode = false
-      source.unmount()
-      editor.focus()
-    }
-  } finally {
-    sourceSwitching = false
+    return await promise
+  } catch {
+    return fallback
   }
 }
 
-function applyLineNumbers(enabled: boolean): void {
-  document.body.classList.toggle('no-line-numbers', !enabled)
+function focusedTextField(): HTMLInputElement | HTMLTextAreaElement | null {
+  const el = document.activeElement
+  return el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement ? el : null
 }
 
-function applyZoom(): void {
-  document.documentElement.style.setProperty('--app-zoom', String(zoom))
-}
-function zoomIn(): void {
-  zoom = Math.min(2.2, zoom + 0.1)
-  applyZoom()
-}
-function zoomOut(): void {
-  zoom = Math.max(0.6, zoom - 0.1)
-  applyZoom()
-}
-function zoomReset(): void {
-  zoom = 1
-  applyZoom()
-}
-
-// --- Command dispatch from menu/shortcuts ---
-const commands: Record<MenuCommand, () => void> = {
-  new: () => void newFile(),
-  open: () => void openFile(),
-  save: () => void save(),
-  saveAs: () => void saveAs(),
-  // The WYSIWYG find bar walks ProseMirror text nodes; in source mode use
-  // CodeMirror's own search panel, which understands its virtualized document.
-  find: () => (sourceMode ? source.openSearch() : find.show()),
-  toggleTheme,
-  toggleReading,
-  toggleSource: () => void toggleSource(),
-  zoomIn,
-  zoomOut,
-  zoomReset
-}
-
-// --- Bootstrap ---
 async function init(): Promise<void> {
-  // A settings failure must never block the editor from mounting.
-  try {
-    theme = await window.api.getTheme()
-  } catch {
-    theme = 'light'
-  }
+  const [savedTheme, prefs, lineNumbers, startup] = await Promise.all([
+    settle<ThemeName>(window.api.getTheme(), 'light'),
+    settle<ViewPrefs>(window.api.getPrefs(), DEFAULT_PREFS),
+    settle<boolean>(window.api.getLineNumbers(), true),
+    settle<StartupFiles>(window.api.getStartupFiles(), { files: [], activePath: null })
+  ])
+  let theme = savedTheme
   applyTheme(theme)
-  el.themeLabel.textContent = theme === 'dark' ? 'Dark' : 'Light'
 
-  let lineNumbersOn = true
-  try {
-    lineNumbersOn = await window.api.getLineNumbers()
-  } catch {
-    lineNumbersOn = true
-  }
-  applyLineNumbers(lineNumbersOn)
+  byId<HTMLImageElement>('brand-logo').src = logoUrl
+  byId('side-new').append(icon(FilePlus))
+  byId('side-open').append(icon(FolderOpen))
+  byId('tab-new').append(icon(Plus))
 
-  // Resolve the startup file BEFORE mounting so the editor is created exactly
-  // once with the correct content. This avoids a mount-welcome-then-reload
-  // churn, which previously could race the editor's destroy/recreate and leak
-  // the editor's stylesheet into the document as text.
-  let startup: { path: string; content: string } | null = null
-  try {
-    startup = await window.api.getStartupFile()
-  } catch {
-    startup = null
-  }
+  // Components call back into the workbench, which is built from them below.
+  let workbench: Workbench | undefined
 
-  const initialContent = startup ? startup.content : WELCOME
-  editor = await MarkdownEditor.mount(el.host, initialContent)
-  editor.setChangeHandler(onEditorChange)
-  renderStatus(initialContent)
-
-  if (startup) {
-    const name = startup.path.split(/[\\/]/).pop() || 'Untitled'
-    setDoc(withSavedPath(doc, startup.path, name))
-  } else {
-    // Mounting with the welcome content marks no dirty state.
-    setDoc(createEmptyDocument())
-  }
-
-  source = new SourceView(el.sourceHost)
-
-  find = new FindController(el.host, {
-    bar: document.getElementById('find-bar') as HTMLElement,
-    input: document.getElementById('find-input') as HTMLInputElement,
-    count: document.getElementById('find-count') as HTMLElement,
-    prev: document.getElementById('find-prev') as HTMLButtonElement,
-    next: document.getElementById('find-next') as HTMLButtonElement,
-    close: document.getElementById('find-close') as HTMLButtonElement
+  const status = new StatusBar({
+    path: byId('status-path'),
+    saved: byId('status-saved'),
+    message: byId('status-message'),
+    cursor: byId('status-cursor'),
+    stats: byId('status-stats'),
+    theme: byId('status-theme')
   })
-
-  // Wire IPC from main.
-  window.api.onMenuCommand((command) => commands[command]?.())
-  window.api.onLineNumbers((enabled) => applyLineNumbers(enabled))
-  window.api.onOpenPath(async (path) => {
-    if (!confirmDiscardIfDirty()) return
-    const opened = await window.api.readFile(path)
-    await loadFromDisk(opened.path, opened.content)
+  const editor = new EditorPane(byId('editor-pane'), {
+    onDocChange: (state) => workbench?.onDocChange(state),
+    onCursor: (line, column) => status.setCursor(line, column),
+    onScroll: () => workbench?.onEditorScroll()
   })
-  window.api.onRequestSaveBeforeClose(async () => {
-    const ok = await save()
-    if (ok) window.api.confirmClose()
+  editor.setLineNumbers(lineNumbers)
+  const preview = new PreviewPane(byId('preview-scroller'), byId('preview'), {
+    onScroll: () => workbench?.onPreviewScroll(),
+    onLink: (href) => workbench?.openLink(href),
+    onToggleTask: (line) => workbench?.toggleTask(line)
   })
+  const layout = new Layout(byId('workspace'), byId('divider'), prefs, (next) => window.api.setPrefs(next))
+  const toolbar = new Toolbar(byId('toolbar'), (command) => run(command))
+  const sync = new ScrollSync(editor, preview, () => layout.mode === 'split', prefs.syncScroll)
+  const outline = new OutlineView(byId('outline'), (heading) => workbench?.goToHeading(heading))
+  const tabHandlers: TabHandlers = {
+    onSelect: (id) => workbench?.activate(id),
+    onClose: (id) => void workbench?.closeTab(id)
+  }
+  const tabStrip = new TabStrip(byId('tabs'), tabHandlers)
+  const fileList = new FileList(byId('file-list'), byId('file-count'), tabHandlers)
+  const findBar = new FindBar(byId('preview'), {
+    bar: byId('find-bar'),
+    input: byId<HTMLInputElement>('find-input'),
+    count: byId('find-count'),
+    prev: byId<HTMLButtonElement>('find-prev'),
+    next: byId<HTMLButtonElement>('find-next'),
+    close: byId<HTMLButtonElement>('find-close')
+  })
+  const wb = new Workbench({ editor, preview, sync, outline, tabStrip, fileList, status, layout, findBar, toolbar })
+  workbench = wb
 
-  // Clickable theme label in the status bar.
-  el.themeLabel.addEventListener('click', toggleTheme)
+  toolbar.setMode(layout.mode)
+  toolbar.setSync(prefs.syncScroll)
+  toolbar.setTheme(theme)
+  status.setTheme(theme)
 
-  // In-renderer accelerator safety net for find focus. In source mode the
-  // keystroke is left to CodeMirror's own search keymap.
-  window.addEventListener('keydown', (e) => {
-    if (sourceMode) return
-    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
-      e.preventDefault()
-      find.show()
+  function toggleTheme(): void {
+    theme = nextTheme(theme)
+    applyTheme(theme)
+    toolbar.setTheme(theme)
+    status.setTheme(theme)
+    window.api.setTheme(theme)
+  }
+
+  /** Formatting only makes sense while the source is visible. */
+  const whenEditing = (edit: (state: EditorState) => TransactionSpec) => (): void => {
+    if (layout.mode === 'preview') {
+      status.showMessage('Switch to Editor or Split view to edit', 'info')
+      return
     }
+    editor.run(edit(editor.state))
+  }
+
+  const commands: Record<MenuCommand, () => void> = {
+    new: () => wb.newTab(),
+    open: () => void wb.openDialog(),
+    save: () => void wb.save(),
+    saveAs: () => void wb.saveAs(),
+    saveAll: () => void wb.saveAll(),
+    closeTab: () => void wb.closeTab(),
+    nextTab: () => wb.cycle(1),
+    prevTab: () => wb.cycle(-1),
+    // Text boxes (find fields) keep their native undo; otherwise use the editor's history.
+    undo: () => (focusedTextField() ? document.execCommand('undo') : editor.undo()),
+    redo: () => (focusedTextField() ? document.execCommand('redo') : editor.redo()),
+    selectAll: () => {
+      const field = focusedTextField()
+      if (field) field.select()
+      else if (layout.mode === 'preview') preview.selectAll()
+      else editor.selectAll()
+    },
+    find: () => (layout.mode === 'preview' ? findBar.show() : editor.openSearch()),
+    bold: whenEditing((s) => toggleInline(s, 'bold')),
+    italic: whenEditing((s) => toggleInline(s, 'italic')),
+    strike: whenEditing((s) => toggleInline(s, 'strike')),
+    code: whenEditing((s) => toggleInline(s, 'code')),
+    link: whenEditing(insertLink),
+    heading1: whenEditing((s) => toggleLineBlock(s, 'heading1')),
+    heading2: whenEditing((s) => toggleLineBlock(s, 'heading2')),
+    heading3: whenEditing((s) => toggleLineBlock(s, 'heading3')),
+    bulletList: whenEditing((s) => toggleLineBlock(s, 'bullet')),
+    orderedList: whenEditing((s) => toggleLineBlock(s, 'ordered')),
+    taskList: whenEditing((s) => toggleLineBlock(s, 'task')),
+    quote: whenEditing((s) => toggleLineBlock(s, 'quote')),
+    codeBlock: whenEditing((s) => insertBlock(s, 'codeBlock')),
+    table: whenEditing((s) => insertBlock(s, 'table')),
+    hr: whenEditing((s) => insertBlock(s, 'hr')),
+    viewEditor: () => wb.setMode('editor'),
+    viewSplit: () => wb.setMode('split'),
+    viewPreview: () => wb.setMode('preview'),
+    toggleSync: () => wb.setSync(!layout.current.syncScroll),
+    toggleSidebar: () => layout.toggleSidebar(),
+    toggleTheme,
+    zoomIn: () => wb.setZoom(layout.current.zoom + 0.1),
+    zoomOut: () => wb.setZoom(layout.current.zoom - 0.1),
+    zoomReset: () => wb.setZoom(1)
+  }
+
+  function run(command: MenuCommand): void {
+    commands[command]?.()
+  }
+
+  window.api.onMenuCommand(run)
+  window.api.onLineNumbers((on) => editor.setLineNumbers(on))
+  window.api.onOpenPath((path) => void wb.openPath(path))
+  window.api.onRequestSaveBeforeClose(async () => {
+    if (await wb.saveAll()) window.api.confirmClose()
   })
 
-  editor.focus()
+  byId('status-theme').addEventListener('click', toggleTheme)
+  byId('side-new').addEventListener('click', () => run('new'))
+  byId('side-open').addEventListener('click', () => run('open'))
+  byId('tab-new').addEventListener('click', () => run('new'))
+  byId('tabs').addEventListener('dblclick', (event) => {
+    if (event.target === event.currentTarget) run('new')
+  })
+
+  // Resizing rewraps both panes differently; line them back up afterwards.
+  let resizeTimer: ReturnType<typeof setTimeout> | null = null
+  window.addEventListener('resize', () => {
+    if (resizeTimer) clearTimeout(resizeTimer)
+    resizeTimer = setTimeout(() => sync.fromEditor(), 150)
+  })
+
+  // Drop Markdown files anywhere on the window to open them as tabs.
+  window.addEventListener('dragover', (event) => {
+    event.preventDefault()
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy'
+  })
+  window.addEventListener('drop', (event) => {
+    event.preventDefault()
+    const files = [...(event.dataTransfer?.files ?? [])]
+    const paths = files.map((f) => window.api.getPathForFile(f)).filter((p) => p !== '' && isMarkdownPath(p))
+    if (paths.length > 0) void wb.openPaths(paths)
+    else if (files.length > 0) status.showMessage('Only Markdown (.md) and text files can be opened', 'info')
+  })
+
+  // Restore the previous session (plus any "open with" file), else show the welcome page.
+  if (startup.files.length > 0) wb.openDocuments(startup.files, startup.activePath)
+  else wb.newTab(WELCOME)
+  if (layout.mode !== 'preview') editor.focus()
 }
 
 void init()

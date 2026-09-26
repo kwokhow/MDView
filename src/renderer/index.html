@@ -9,32 +9,70 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MDView</title>
   </head>
-  <body>
+  <body data-mode="split">
     <div id="app">
-      <!-- Live WYSIWYG surface (Milkdown Crepe) -->
-      <main id="editor-host"></main>
+      <aside id="sidebar" aria-label="Sidebar">
+        <div class="sidebar-head">
+          <div class="brand">
+            <img id="brand-logo" alt="" />
+            <span>MDView</span>
+          </div>
+          <button type="button" class="icon-btn" id="side-new" title="New tab (Ctrl+N)" aria-label="New tab"></button>
+          <button type="button" class="icon-btn" id="side-open" title="Open files (Ctrl+O)" aria-label="Open files"></button>
+        </div>
 
-      <!-- Raw-Markdown source surface with line numbers (CodeMirror); shown in Source Mode -->
-      <div id="source-host" class="hidden"></div>
+        <section class="side-section side-files" aria-label="Open files">
+          <h2 class="side-title">Open files <span id="file-count" class="side-count">0</span></h2>
+          <ul id="file-list" class="file-list"></ul>
+        </section>
 
-      <!-- Find overlay -->
-      <div id="find-bar" class="find-bar hidden" role="search">
-        <input id="find-input" type="text" placeholder="Find in document…" aria-label="Find" />
-        <span id="find-count" class="find-count">0/0</span>
-        <button id="find-prev" class="find-btn" title="Previous (Shift+Enter)" aria-label="Previous match">▲</button>
-        <button id="find-next" class="find-btn" title="Next (Enter)" aria-label="Next match">▼</button>
-        <button id="find-close" class="find-btn" title="Close (Esc)" aria-label="Close find">✕</button>
-      </div>
+        <section class="side-section side-outline" aria-label="Outline">
+          <h2 class="side-title">Outline</h2>
+          <nav id="outline" class="outline"></nav>
+        </section>
+      </aside>
 
-      <!-- Status bar -->
+      <main id="main">
+        <div class="tabbar">
+          <div id="tabs" class="tabs" role="tablist" aria-label="Open documents"></div>
+          <button type="button" id="tab-new" class="tab-new" title="New tab (Ctrl+N)" aria-label="New tab"></button>
+        </div>
+
+        <div id="toolbar" class="toolbar" role="toolbar" aria-label="Formatting and view"></div>
+
+        <div id="workspace" class="workspace">
+          <section id="editor-pane" class="pane editor-pane" aria-label="Markdown source"></section>
+          <div
+            id="divider"
+            class="divider"
+            role="separator"
+            aria-orientation="vertical"
+            title="Drag to resize · double-click to reset"
+          ></div>
+          <section id="preview-pane" class="pane preview-pane" aria-label="Formatted preview">
+            <div id="preview-scroller" class="preview-scroller">
+              <article id="preview" class="markdown-body"></article>
+            </div>
+
+            <div id="find-bar" class="find-bar hidden" role="search">
+              <input id="find-input" type="text" placeholder="Find in preview…" aria-label="Find in preview" />
+              <span id="find-count" class="find-count">0/0</span>
+              <button type="button" id="find-prev" class="find-btn" title="Previous (Shift+Enter)" aria-label="Previous match">▲</button>
+              <button type="button" id="find-next" class="find-btn" title="Next (Enter)" aria-label="Next match">▼</button>
+              <button type="button" id="find-close" class="find-btn" title="Close (Esc)" aria-label="Close find">✕</button>
+            </div>
+          </section>
+        </div>
+      </main>
+
       <footer id="status-bar">
-        <span id="status-name">Untitled</span>
-        <span id="status-mode" class="status-mode"></span>
+        <span id="status-path" class="status-path"></span>
+        <span id="status-saved" class="status-saved"></span>
+        <span id="status-message" class="status-message" role="status" aria-live="polite"></span>
         <span class="status-spacer"></span>
         <span id="status-cursor" class="status-cursor"></span>
-        <span id="status-words">0 words</span>
-        <span id="status-chars">0 characters</span>
-        <span id="status-theme" class="status-clickable" title="Toggle theme (Ctrl+\)">Light</span>
+        <span id="status-stats" class="status-stats"></span>
+        <button type="button" id="status-theme" class="status-btn" title="Toggle theme (Ctrl+\)"></button>
       </footer>
     </div>
     <script type="module" src="./main.ts"></script>

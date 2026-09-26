@@ -1,6 +1,6 @@
 name: CI
 
-# Type-checks and builds on every push and pull request to main,
+# Type-checks, unit-tests and builds on every push and pull request to main,
 # so broken changes are caught before a release tag is cut.
 
 on:
@@ -19,7 +19,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
       - name: Install dependencies
@@ -27,6 +27,9 @@ jobs:
 
       - name: Type check
         run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
 
       - name: Build
         run: npm run build

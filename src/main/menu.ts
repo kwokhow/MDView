@@ -9,29 +9,31 @@ function dispatch(command: MenuCommand): void {
   win?.webContents.send(IpcSend.menuCommand, command)
 }
 
+/** Shorthand for a menu item that dispatches a renderer command. */
+function item(label: string, command: MenuCommand, accelerator?: string): MenuItemConstructorOptions {
+  return { label, accelerator, click: () => dispatch(command) }
+}
+
 /**
  * Persist the spellcheck preference and apply it to every open window without
  * needing a restart. The new state is derived from the stored value rather than
  * the menu item's `checked` flag, so the setting stays authoritative and the
  * item is re-synced to match it.
  */
-function toggleSpellcheck(item: Electron.MenuItem): void {
+function toggleSpellcheck(menuItem: Electron.MenuItem): void {
   const enabled = !getSpellcheck()
   setSpellcheck(enabled)
-  item.checked = enabled
+  menuItem.checked = enabled
   for (const win of BrowserWindow.getAllWindows()) {
     win.webContents.session.setSpellCheckerEnabled(enabled)
   }
 }
 
-/**
- * Persist the line-number preference and push it to every renderer, which
- * applies it instantly to both the source view and fenced code blocks.
- */
-function toggleLineNumbers(item: Electron.MenuItem): void {
+/** Persist the line-number preference and push it to every renderer. */
+function toggleLineNumbers(menuItem: Electron.MenuItem): void {
   const enabled = !getLineNumbers()
   setLineNumbers(enabled)
-  item.checked = enabled
+  menuItem.checked = enabled
   for (const win of BrowserWindow.getAllWindows()) {
     win.webContents.send(IpcSend.lineNumbers, enabled)
   }
@@ -43,11 +45,14 @@ export function buildMenu(): void {
     {
       label: 'File',
       submenu: [
-        { label: 'New', accelerator: 'CmdOrCtrl+N', click: () => dispatch('new') },
-        { label: 'Open…', accelerator: 'CmdOrCtrl+O', click: () => dispatch('open') },
+        item('New Tab', 'new', 'CmdOrCtrl+N'),
+        item('Open…', 'open', 'CmdOrCtrl+O'),
         { type: 'separator' },
-        { label: 'Save', accelerator: 'CmdOrCtrl+S', click: () => dispatch('save') },
-        { label: 'Save As…', accelerator: 'CmdOrCtrl+Shift+S', click: () => dispatch('saveAs') },
+        item('Save', 'save', 'CmdOrCtrl+S'),
+        item('Save As…', 'saveAs', 'CmdOrCtrl+Shift+S'),
+        item('Save All', 'saveAll', 'CmdOrCtrl+Alt+S'),
+        { type: 'separator' },
+        item('Close Tab', 'closeTab', 'CmdOrCtrl+W'),
         { type: 'separator' },
         { role: 'quit' }
       ]
@@ -55,40 +60,72 @@ export function buildMenu(): void {
     {
       label: 'Edit',
       submenu: [
-        { role: 'undo' },
-        { role: 'redo' },
+        // Undo/redo/select-all go through the renderer so they act on the
+        // editor's own history and whole document, not just the rendered lines.
+        item('Undo', 'undo', 'CmdOrCtrl+Z'),
+        item('Redo', 'redo', 'CmdOrCtrl+Y'),
         { type: 'separator' },
         { role: 'cut' },
         { role: 'copy' },
         { role: 'paste' },
-        { role: 'selectAll' },
+        item('Select All', 'selectAll', 'CmdOrCtrl+A'),
         { type: 'separator' },
-        { label: 'Find…', accelerator: 'CmdOrCtrl+F', click: () => dispatch('find') }
+        item('Find / Replace…', 'find', 'CmdOrCtrl+F')
+      ]
+    },
+    {
+      label: 'Format',
+      submenu: [
+        item('Bold', 'bold', 'CmdOrCtrl+B'),
+        item('Italic', 'italic', 'CmdOrCtrl+I'),
+        item('Strikethrough', 'strike', 'CmdOrCtrl+Shift+X'),
+        item('Inline Code', 'code', 'CmdOrCtrl+E'),
+        item('Link', 'link', 'CmdOrCtrl+K'),
+        { type: 'separator' },
+        item('Heading 1', 'heading1', 'CmdOrCtrl+1'),
+        item('Heading 2', 'heading2', 'CmdOrCtrl+2'),
+        item('Heading 3', 'heading3', 'CmdOrCtrl+3'),
+        { type: 'separator' },
+        item('Bulleted List', 'bulletList'),
+        item('Numbered List', 'orderedList'),
+        item('Task List', 'taskList'),
+        item('Quote', 'quote'),
+        { type: 'separator' },
+        item('Code Block', 'codeBlock'),
+        item('Table', 'table'),
+        item('Horizontal Rule', 'hr')
       ]
     },
     {
       label: 'View',
       submenu: [
-        { label: 'Source Mode', accelerator: 'CmdOrCtrl+E', click: () => dispatch('toggleSource') },
-        { label: 'Reading Mode', accelerator: 'CmdOrCtrl+/', click: () => dispatch('toggleReading') },
-        { label: 'Toggle Theme', accelerator: 'CmdOrCtrl+\\', click: () => dispatch('toggleTheme') },
+        item('Editor Only', 'viewEditor', 'CmdOrCtrl+Alt+1'),
+        item('Split View', 'viewSplit', 'CmdOrCtrl+Alt+2'),
+        item('Preview Only', 'viewPreview', 'CmdOrCtrl+Alt+3'),
+        { type: 'separator' },
+        item('Toggle Sync Scroll', 'toggleSync'),
+        item('Toggle Sidebar', 'toggleSidebar', 'CmdOrCtrl+Alt+B'),
+        item('Toggle Theme', 'toggleTheme', 'CmdOrCtrl+\\'),
         { type: 'separator' },
         {
           label: 'Line Numbers',
           type: 'checkbox',
           checked: getLineNumbers(),
-          click: (item) => toggleLineNumbers(item)
+          click: (menuItem) => toggleLineNumbers(menuItem)
         },
         {
           label: 'Check Spelling',
           type: 'checkbox',
           checked: getSpellcheck(),
-          click: (item) => toggleSpellcheck(item)
+          click: (menuItem) => toggleSpellcheck(menuItem)
         },
         { type: 'separator' },
-        { label: 'Zoom In', accelerator: 'CmdOrCtrl+=', click: () => dispatch('zoomIn') },
-        { label: 'Zoom Out', accelerator: 'CmdOrCtrl+-', click: () => dispatch('zoomOut') },
-        { label: 'Reset Zoom', accelerator: 'CmdOrCtrl+0', click: () => dispatch('zoomReset') },
+        item('Next Tab', 'nextTab', 'Ctrl+Tab'),
+        item('Previous Tab', 'prevTab', 'Ctrl+Shift+Tab'),
+        { type: 'separator' },
+        item('Zoom In', 'zoomIn', 'CmdOrCtrl+='),
+        item('Zoom Out', 'zoomOut', 'CmdOrCtrl+-'),
+        item('Reset Zoom', 'zoomReset', 'CmdOrCtrl+0'),
         { type: 'separator' },
         { role: 'togglefullscreen' },
         { role: 'toggleDevTools' }

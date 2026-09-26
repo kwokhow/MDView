@@ -1,17 +1,20 @@
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { existsSync } from 'node:fs'
 import { app, BrowserWindow, dialog, nativeImage } from 'electron'
 import { IpcSend } from '../shared/types'
 import { registerIpc } from './ipc'
 import { buildMenu } from './menu'
 import { configureAboutPanel } from './about'
+import { openExternalSafe } from './external'
 import {
   getWindowBounds,
   setWindowBounds,
   getMaximized,
   setMaximized,
   getLastFile,
-  getSpellcheck
+  getSession,
+  getSpellcheck,
+  getTheme
 } from './settings'
 
 let mainWindow: BrowserWindow | null = null
@@ -35,12 +38,8 @@ let isDirty = false
 let forceClose = false
 /** A file path requested before the window/renderer was ready. */
 let pendingOpenPath: string | null = null
-/**
- * The file to open when the renderer boots (CLI/"open with" arg, else the last
- * session's file). The renderer fetches this once via getStartupFile and mounts
- * the editor a single time with it — avoiding a mount-then-reload churn.
- */
-let startupFilePath: string | null = null
+/** "Open with" file from the launch command line; consumed by the first startup request. */
+let launchPath: string | null = null
 
 /** Find a markdown path among CLI args (Windows "open with" / jump list). */
 function findPathInArgv(argv: string[]): string | null {
@@ -48,21 +47,63 @@ function findPathInArgv(argv: string[]): string | null {
   // with a markdown-ish extension.
   const candidates = argv.slice(1).filter((a) => !a.startsWith('-'))
   for (const c of candidates) {
-    if (/\.(md|markdown|mdown|mkd|txt)$/i.test(c) && existsSync(c)) return c
+    if (/\.(md|markdown|mdown|mkd|mkdn|txt)$/i.test(c) && existsSync(c)) return c
   }
   return null
 }
 
+/** Windows paths are case-insensitive; compare them that way. */
+function samePath(a: string, b: string): boolean {
+  return resolve(a).toLowerCase() === resolve(b).toLowerCase()
+}
+
+/**
+ * Files to open when the renderer boots: the previous session's tabs that
+ * still exist (falling back to the pre-2.0 single "last file"), plus the
+ * "open with" file, which becomes the active tab.
+ */
+function startupPaths(): { paths: string[]; activePath: string | null } {
+  const session = getSession()
+  let paths = session.paths.filter((p) => existsSync(p))
+  if (paths.length === 0) {
+    const last = getLastFile()
+    if (last && existsSync(last)) paths = [last]
+  }
+  let activePath =
+    session.activePath && paths.includes(session.activePath) ? session.activePath : (paths.at(-1) ?? null)
+
+  const cli = launchPath
+  launchPath = null
+  if (cli) {
+    const existing = paths.find((p) => samePath(p, cli))
+    if (!existing) paths = [...paths, cli]
+    activePath = existing ?? cli
+  }
+  return { paths, activePath }
+}
+
 function sendOpenPath(path: string): void {
-  if (mainWindow && mainWindow.webContents) {
-    if (mainWindow.webContents.isLoading()) {
-      pendingOpenPath = path
-    } else {
-      mainWindow.webContents.send(IpcSend.openPath, path)
-    }
+  if (mainWindow && !mainWindow.webContents.isLoading()) {
+    mainWindow.webContents.send(IpcSend.openPath, path)
   } else {
     pendingOpenPath = path
   }
+}
+
+/**
+ * The preview renders arbitrary document content. Never let a link (or a
+ * dropped file) navigate the app window away; hand web links to the browser.
+ */
+function hardenNavigation(win: BrowserWindow): void {
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    openExternalSafe(url)
+    return { action: 'deny' }
+  })
+  win.webContents.on('will-navigate', (event, url) => {
+    if (url === win.webContents.getURL()) return
+    event.preventDefault()
+    openExternalSafe(url)
+  })
 }
 
 function createWindow(): void {
@@ -73,10 +114,10 @@ function createWindow(): void {
     height: bounds.height,
     x: bounds.x,
     y: bounds.y,
-    minWidth: 480,
-    minHeight: 360,
+    minWidth: 640,
+    minHeight: 420,
     show: false,
-    backgroundColor: '#ffffff',
+    backgroundColor: getTheme() === 'dark' ? '#0d1117' : '#ffffff',
     title: 'MDView',
     icon: windowIcon(),
     webPreferences: {
@@ -84,9 +125,8 @@ function createWindow(): void {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
-      // The whole document is one editable surface, so the spellchecker
-      // underlines every identifier, code token and product name. That noise is
-      // not worth it for a Markdown editor — toggle it from the View menu.
+      // Markdown is full of identifiers and code the dictionary flags as
+      // misspellings, so this is off unless enabled from View > Check Spelling.
       spellcheck: getSpellcheck()
     }
   })
@@ -96,6 +136,7 @@ function createWindow(): void {
   // webPreferences.spellcheck is only read at creation; also drive the session
   // so the View > Check Spelling toggle and this initial state agree.
   mainWindow.webContents.session.setSpellCheckerEnabled(getSpellcheck())
+  hardenNavigation(mainWindow)
 
   mainWindow.once('ready-to-show', () => mainWindow?.show())
 
@@ -115,15 +156,16 @@ function createWindow(): void {
     if (forceClose || !isDirty || !mainWindow) return
     event.preventDefault()
     const choice = dialog.showMessageBoxSync(mainWindow, {
-      type: 'question',
-      buttons: ['Save', "Don't Save", 'Cancel'],
+      type: 'warning',
+      buttons: ['Save All', "Don't Save", 'Cancel'],
       defaultId: 0,
       cancelId: 2,
+      noLink: true,
       title: 'Unsaved changes',
-      message: 'You have unsaved changes. Save before closing?'
+      message: 'Some documents have unsaved changes. Save them before closing?'
     })
     if (choice === 0) {
-      // Ask renderer to save; it calls confirmClose() when done.
+      // Ask renderer to save everything; it calls confirmClose() when done.
       mainWindow.webContents.send(IpcSend.requestSaveBeforeClose)
     } else if (choice === 1) {
       forceClose = true
@@ -166,19 +208,10 @@ if (!gotLock) {
   })
 
   app.whenReady().then(() => {
-    // Decide the startup file BEFORE creating the window: a CLI/"open with"
-    // path takes precedence, else the last session's file if it still exists.
-    // The renderer fetches it via getStartupFile and mounts once with it.
-    const initialPath = findPathInArgv(process.argv)
-    if (initialPath) {
-      startupFilePath = initialPath
-    } else {
-      const lastFile = getLastFile()
-      startupFilePath = lastFile && existsSync(lastFile) ? lastFile : null
-    }
+    launchPath = findPathInArgv(process.argv)
 
     registerIpc({
-      getStartupFile: () => startupFilePath,
+      getStartupPaths: startupPaths,
       onDirtyChange: (_win, dirty) => {
         isDirty = dirty
       },

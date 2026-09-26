@@ -2,6 +2,41 @@
 
 All notable changes to MDView are documented here.
 
+## [2.0.0] — 2026-09-25
+
+A redesign around a split view: raw Markdown on the left, formatted preview on
+the right.
+
+### Added
+- **Split view** with a live, read-only formatted preview. Switch between
+  Editor, Split and Preview (`Ctrl+Alt+1/2/3`); drag the divider to resize,
+  double-click it to reset.
+- **Sync scroll**: the preview follows the editor to the same source line, and
+  the editor follows the preview when you scroll that instead.
+- **Tabs**: open many files at once (multi-select in Open, or drag files onto
+  the window); `Ctrl+Tab` to cycle, `Ctrl+W` to close, **Save All**. Each tab
+  keeps its own cursor and undo history.
+- **Session restore**: open tabs and the active tab come back next launch.
+- **Sidebar** with the open-files list and a heading **outline** that tracks the
+  section you are reading.
+- **Formatting toolbar** and **Format** menu: bold, italic, strikethrough, code,
+  links, headings, lists, task lists, quotes, code blocks, tables, rules.
+- Task checkboxes can be ticked in the preview; links to other `.md` files open
+  them in a tab; `#section` links jump within the document; relative images
+  display.
+- Status bar with cursor position, word/character/line counts and reading time.
+
+### Changed
+- New GitHub-style colour scheme for the chrome, editor and preview, with a
+  matching dark theme.
+- Prose wraps to each pane and reflows on resize; code blocks keep their shape
+  and scroll sideways instead of wrapping.
+- The WYSIWYG editor and Source Mode are replaced by the split view.
+
+### Security
+- Preview HTML is sanitized; the window can no longer be navigated by a link or
+  a dropped file; only http/https/mailto links are handed to the browser.
+
 ## [1.1.0] — 2026-09-23
 
 ### Added

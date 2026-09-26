@@ -1,10 +1,9 @@
 import { readFile, writeFile } from 'node:fs/promises'
-import { basename } from 'node:path'
 import { app, dialog, BrowserWindow } from 'electron'
 import type { OpenedFile, SavedFile } from '../shared/types'
 
 const MD_FILTERS = [
-  { name: 'Markdown', extensions: ['md', 'markdown', 'mdown', 'mkd'] },
+  { name: 'Markdown', extensions: ['md', 'markdown', 'mdown', 'mkd', 'mkdn'] },
   { name: 'Text', extensions: ['txt'] },
   { name: 'All Files', extensions: ['*'] }
 ]
@@ -15,15 +14,21 @@ export async function readMarkdownFile(path: string): Promise<OpenedFile> {
   return { path, content }
 }
 
-/** Show the open dialog and read the chosen file. Returns null if cancelled. */
-export async function openFileViaDialog(win: BrowserWindow): Promise<OpenedFile | null> {
+/** Read several files, skipping any that are missing or unreadable. */
+export async function readMarkdownFiles(paths: readonly string[]): Promise<OpenedFile[]> {
+  const results = await Promise.allSettled(paths.map((p) => readMarkdownFile(p)))
+  return results.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : []))
+}
+
+/** Show the open dialog (multi-select) and read the chosen files. [] if cancelled. */
+export async function openFilesViaDialog(win: BrowserWindow): Promise<OpenedFile[]> {
   const { canceled, filePaths } = await dialog.showOpenDialog(win, {
-    title: 'Open Markdown File',
-    properties: ['openFile'],
+    title: 'Open Markdown Files',
+    properties: ['openFile', 'multiSelections'],
     filters: MD_FILTERS
   })
-  if (canceled || filePaths.length === 0) return null
-  return readMarkdownFile(filePaths[0])
+  if (canceled || filePaths.length === 0) return []
+  return readMarkdownFiles(filePaths)
 }
 
 /** Write content to an existing path. */
@@ -50,9 +55,4 @@ export async function saveViaDialog(
 /** Register a successfully opened file with the OS recent-documents list. */
 export function addRecentDocument(path: string): void {
   app.addRecentDocument(path)
-}
-
-/** Extract a display name from a path. */
-export function displayName(path: string): string {
-  return basename(path)
 }

@@ -1,0 +1,352 @@
+/* ============================================================
+   Formatted preview — GitHub-style Markdown typography.
+   Text wraps to the pane, so it reflows as the window resizes.
+   ============================================================ */
+.markdown-body {
+  padding: 28px 44px 45vh;
+  color: var(--fg);
+  font-size: calc(15px * var(--content-zoom));
+  line-height: 1.65;
+  overflow-wrap: break-word;
+}
+
+.markdown-body > :first-child {
+  margin-top: 0 !important;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  margin: 1.6em 0 0.65em;
+  font-weight: 600;
+  line-height: 1.28;
+  scroll-margin-top: 16px;
+}
+
+.markdown-body h1 {
+  font-size: 2em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.markdown-body h2 {
+  font-size: 1.5em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.markdown-body h3 {
+  font-size: 1.25em;
+}
+
+.markdown-body h4 {
+  font-size: 1em;
+}
+
+.markdown-body h5 {
+  font-size: 0.9em;
+}
+
+.markdown-body h6 {
+  font-size: 0.85em;
+  color: var(--fg-muted);
+}
+
+.markdown-body p,
+.markdown-body blockquote,
+.markdown-body ul,
+.markdown-body ol,
+.markdown-body dl,
+.markdown-body pre,
+.markdown-body details,
+.markdown-body .table-wrap {
+  margin: 0 0 1em;
+}
+
+.markdown-body a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.markdown-body a:hover {
+  text-decoration: underline;
+}
+
+.markdown-body strong {
+  font-weight: 600;
+}
+
+.markdown-body hr {
+  height: 0.25em;
+  margin: 1.6em 0;
+  padding: 0;
+  border: 0;
+  background: var(--border-subtle);
+}
+
+.markdown-body blockquote {
+  padding: 0 1em;
+  color: var(--fg-muted);
+  border-left: 0.25em solid var(--border);
+}
+
+.markdown-body blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  padding-left: 2em;
+}
+
+.markdown-body li + li {
+  margin-top: 0.25em;
+}
+
+.markdown-body li > p {
+  margin: 0.5em 0;
+}
+
+.markdown-body li > ul,
+.markdown-body li > ol {
+  margin: 0.25em 0 0;
+}
+
+.markdown-body .contains-task-list {
+  list-style: none;
+  padding-left: 1.6em;
+}
+
+.markdown-body .task-list-item-checkbox {
+  margin: 0 0.45em 0.2em -1.5em;
+  vertical-align: middle;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.markdown-body code,
+.markdown-body kbd,
+.markdown-body pre {
+  font-family: var(--font-mono);
+}
+
+.markdown-body :not(pre) > code {
+  padding: 0.18em 0.4em;
+  font-size: 0.86em;
+  background: var(--inline-code-bg);
+  border-radius: 6px;
+  white-space: break-spaces;
+}
+
+.markdown-body pre {
+  position: relative;
+  padding: 14px 16px;
+  font-size: 0.86em;
+  line-height: 1.55;
+  background: var(--code-bg);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  overflow: auto;
+}
+
+/* Prose reflows with the pane, but code keeps its exact shape: wrapping would
+   scramble box-drawing diagrams and column-aligned SQL. A block wider than the
+   pane scrolls sideways on its own. */
+.markdown-body pre code {
+  display: block;
+  width: max-content;
+  min-width: 100%;
+  padding: 0;
+  background: transparent;
+  white-space: pre;
+  overflow-wrap: normal;
+}
+
+.markdown-body pre[data-lang] {
+  padding-top: 28px;
+}
+
+.markdown-body pre[data-lang]::before {
+  content: attr(data-lang);
+  position: absolute;
+  top: 7px;
+  right: 12px;
+  font-family: var(--font-ui);
+  font-size: 10.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--fg-subtle);
+}
+
+.markdown-body kbd {
+  display: inline-block;
+  padding: 2px 5px;
+  font-size: 0.8em;
+  line-height: 1.1;
+  color: var(--fg);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+}
+
+/* Tables size to their content but never past the pane: cells wrap, and a
+   table that still cannot fit scrolls inside its own wrapper. */
+.markdown-body .table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.markdown-body table {
+  border-collapse: collapse;
+  border-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.markdown-body th,
+.markdown-body td {
+  padding: 7px 13px;
+  border: 1px solid var(--border);
+  vertical-align: top;
+  overflow-wrap: break-word;
+}
+
+.markdown-body th {
+  font-weight: 600;
+  background: var(--bg-subtle);
+}
+
+.markdown-body tbody tr:nth-child(2n) {
+  background: color-mix(in srgb, var(--bg-subtle) 70%, transparent);
+}
+
+.markdown-body img {
+  max-width: 100%;
+  border-radius: 4px;
+}
+
+.markdown-body mark {
+  padding: 0 0.15em;
+  color: inherit;
+  background: var(--mark-bg);
+  border-radius: 3px;
+}
+
+.markdown-body details {
+  padding: 0.4em 0.8em;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+}
+
+.markdown-body summary {
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.markdown-body dt {
+  font-weight: 600;
+}
+
+.markdown-body dd {
+  margin: 0 0 0.75em 1.5em;
+}
+
+/* Briefly highlight a heading jumped to from a link or the outline. */
+.markdown-body .flash {
+  animation: heading-flash 1.2s ease-out;
+}
+
+@keyframes heading-flash {
+  from {
+    background: var(--accent-subtle);
+  }
+  to {
+    background: transparent;
+  }
+}
+
+/* ---- Code highlighting (highlight.js), coloured from the theme tokens ---- */
+.hljs-doctag,
+.hljs-keyword,
+.hljs-meta .hljs-keyword,
+.hljs-template-tag,
+.hljs-template-variable,
+.hljs-type,
+.hljs-variable.language_,
+.hljs-operator {
+  color: var(--tok-keyword);
+}
+
+.hljs-title,
+.hljs-title.class_,
+.hljs-title.class_.inherited__,
+.hljs-title.function_ {
+  color: var(--tok-function);
+}
+
+.hljs-attr,
+.hljs-attribute,
+.hljs-literal,
+.hljs-meta,
+.hljs-number,
+.hljs-selector-attr,
+.hljs-selector-class,
+.hljs-selector-id,
+.hljs-variable {
+  color: var(--tok-constant);
+}
+
+.hljs-meta .hljs-string,
+.hljs-regexp,
+.hljs-string {
+  color: var(--tok-string);
+}
+
+.hljs-built_in,
+.hljs-symbol {
+  color: var(--tok-builtin);
+}
+
+.hljs-code,
+.hljs-comment,
+.hljs-formula {
+  color: var(--tok-comment);
+  font-style: italic;
+}
+
+.hljs-name,
+.hljs-quote,
+.hljs-selector-pseudo,
+.hljs-selector-tag {
+  color: var(--tok-tag);
+}
+
+.hljs-section {
+  color: var(--tok-constant);
+  font-weight: 600;
+}
+
+.hljs-bullet {
+  color: var(--tok-bullet);
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: 600;
+}
+
+.hljs-addition {
+  color: var(--tok-tag);
+  background: color-mix(in srgb, var(--tok-tag) 12%, transparent);
+}
+
+.hljs-deletion {
+  color: var(--tok-keyword);
+  background: color-mix(in srgb, var(--tok-keyword) 12%, transparent);
+}

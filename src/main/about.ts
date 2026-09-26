@@ -36,11 +36,11 @@ export async function showAbout(parent?: BrowserWindow | null): Promise<void> {
   const detail = [
     `Version ${app.getVersion()}`,
     '',
-    'A live-WYSIWYG Markdown editor.',
-    'Type Markdown and watch it render in place — open, edit,',
-    'save, and read .md files comfortably on Windows.',
+    'A split-view Markdown editor and viewer.',
+    'Edit raw Markdown beside a live formatted preview —',
+    'open many .md files in tabs and read them comfortably on Windows.',
     '',
-    `Built with Electron ${process.versions.electron} and Milkdown.`,
+    `Built with Electron ${process.versions.electron}, CodeMirror and markdown-it.`,
     '',
     `© 2026 ${VENDOR}. Released under the MIT License.`
   ].join('\n')

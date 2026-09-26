@@ -4,9 +4,10 @@
   <img src="build/icon.png" width="128" alt="MDView logo" />
 </p>
 
-A **live-WYSIWYG Markdown editor** for Windows. You type Markdown and it renders
-**in place** as you type — no split-pane preview, no visible raw syntax. Built as
-a native desktop app with Electron.
+A **split-view Markdown editor and viewer** for Windows. Raw Markdown on the
+left, a live formatted preview on the right that scrolls in step with it. Open
+many files in tabs; your session is restored next time. Built as a native
+desktop app with Electron.
 
 **MDView by KEC** · MIT License · © 2026 KEC
 
@@ -23,53 +24,62 @@ Grab a build from the **[Releases page](https://github.com/kwokhow/MDView/releas
 
 | File | What it is |
 | --- | --- |
-| `MDView Setup <version>.exe` | NSIS installer (~85 MB). Installs the app, creates a Start-menu/desktop shortcut, and registers `.md` / `.markdown` files so you can double-click or "Open with" MDView. |
-| `MDView-<version>-portable.exe` | Single self-contained executable (~85 MB). No install — just run it. (Does not register file associations.) |
+| `MDView Setup <version>.exe` | Installer. Adds Start-menu and desktop shortcuts and registers `.md` / `.markdown` files so you can double-click or "Open with" MDView. Installing a newer version updates in place. |
+| `MDView-<version>-portable.exe` | Single self-contained executable. No install — just run it. Does not register file associations. |
 
 > The executables are **unsigned** (no paid code-signing certificate), so Windows
 > SmartScreen may show a "Windows protected your PC" prompt on first run — choose
-> **More info → Run anyway**. This is normal for open-source apps without a
-> commercial signing certificate.
+> **More info → Run anyway**.
 
-### Editing
-Type Markdown and watch it render live: `## ` → heading, `**x**` → **bold**,
-`*x*` → *italic*, `` `x` `` → `code`, `- [ ] ` → a task checkbox, `> ` → a
-quote, ` ``` ` → a code block with syntax highlighting. GFM tables, task lists,
-images, and links all work.
+### The window
+- **Tabs** along the top, one per open document. A dot on a tab means unsaved
+  changes. Middle-click or `Ctrl+W` closes a tab; you are asked before any
+  unsaved work is discarded.
+- **Sidebar** (toggle with `Ctrl+Alt+B`): the list of open files, and an
+  **outline** of the current document's headings. Click a heading to jump to it;
+  the section you are reading is highlighted.
+- **Toolbar**: formatting buttons, and on the right the **Editor / Split /
+  Preview** switch, **Sync** scroll, and the light/dark theme.
+- **Status bar**: file path, save state, cursor position, word / character /
+  line counts and reading time.
+
+### Editing and reading
+- Write Markdown in the editor (line numbers, syntax colouring, find and
+  replace). The preview updates as you type.
+- Prose wraps to the width of each pane and reflows when you resize the window.
+  Code blocks keep their exact shape — box diagrams and aligned SQL are never
+  rewrapped — and scroll sideways if they are wider than the pane.
+- Tables size to their content, wrap long cells, and scroll on their own when
+  they are genuinely too wide.
+- Tick a task checkbox in the preview and the source line updates.
+- Links: web links open in your browser; `#section` links jump within the
+  document; links to other `.md` files open them in a new tab. Images stored
+  next to your document display in the preview.
+- Drag Markdown files onto the window to open them.
 
 ### Keyboard shortcuts
-| Shortcut | Action |
+| Action | Shortcut |
 | --- | --- |
-| Ctrl + N | New document |
-| Ctrl + O | Open a file |
-| Ctrl + S | Save |
-| Ctrl + Shift + S | Save As |
-| Ctrl + F | Find in document |
-| Ctrl + / | Reading mode (read-only) |
-| Ctrl + E | Source mode — raw Markdown with line numbers |
-| Ctrl + \ | Toggle light / dark theme |
+| New tab / Open files | Ctrl+N / Ctrl+O |
+| Save / Save As / Save All | Ctrl+S / Ctrl+Shift+S / Ctrl+Alt+S |
+| Close tab | Ctrl+W |
+| Next / previous tab | Ctrl+Tab / Ctrl+Shift+Tab |
+| Find and replace | Ctrl+F |
+| Bold / Italic / Strikethrough | Ctrl+B / Ctrl+I / Ctrl+Shift+X |
+| Inline code / Link | Ctrl+E / Ctrl+K |
+| Heading 1 / 2 / 3 | Ctrl+1 / Ctrl+2 / Ctrl+3 |
+| Editor / Split / Preview view | Ctrl+Alt+1 / Ctrl+Alt+2 / Ctrl+Alt+3 |
+| Toggle sidebar / theme | Ctrl+Alt+B / Ctrl+\ |
+| Zoom text in / out / reset | Ctrl+= / Ctrl+- / Ctrl+0 |
 
-The live view renders Markdown in place, so it has no fixed lines to number.
-**Source Mode** (`Ctrl+E`) shows the raw Markdown in a text editor with a
-numbered gutter and syntax highlighting; edits made there carry back to the
-live view when you switch out, and Save writes whichever view is active. In the
-live view, fenced code blocks are numbered as well — the gutter appears once you
-click into a block. Both gutters are governed by **View → Line Numbers** (on by
-default, remembered).
+Lists, task lists, quotes, code blocks, tables and horizontal rules are on the
+toolbar and in the **Format** menu.
 
-Spell checking is off by default, since Markdown documents tend to be full of
-code and identifiers that a dictionary flags as misspellings. Turn it on from
-**View → Check Spelling** — the choice is remembered.
-| Ctrl + = / − / 0 | Zoom in / out / reset |
-| Ctrl + Z / Y | Undo / redo |
-
-Closing the window with unsaved changes prompts **Save / Don't Save / Cancel**.
-Window size, theme, and recent files persist between sessions.
-
-### About
-**Help → About MDView** shows the version, a short description, and the KEC
-attribution. The app icon, taskbar entry, and installer all carry the MDView
-by KEC branding.
+### Settings that are remembered
+Open tabs, the active tab, view mode, split position, sync scroll, sidebar,
+text zoom, theme, and window size. **View → Line Numbers** and **View → Check
+Spelling** (off by default — Markdown is full of identifiers a dictionary
+flags) are remembered too.
 
 ---
 
@@ -77,18 +87,20 @@ by KEC branding.
 
 ### Stack
 - **Electron** (main / preload / renderer) + **electron-vite** + **TypeScript**
-- **Milkdown Crepe** (`@milkdown/crepe`) — the ProseMirror-based WYSIWYG engine.
-  Owns Markdown parsing, rendering, serialization, and CodeMirror-powered code
-  blocks.
-- **electron-store** — persists window geometry + theme.
+- **CodeMirror 6** — the Markdown source editor.
+- **markdown-it** — Markdown → HTML for the preview; **highlight.js** for code
+  colouring; **DOMPurify** sanitizes the preview HTML.
+- **electron-store** — persists settings and the session.
 - **electron-builder** — packages the NSIS installer + portable exe.
+- **Vitest** — unit tests for the renderer's pure logic.
 
 ### Commands
 ```bash
 npm install        # install dependencies
 npm run dev        # launch in dev mode with hot reload
-npm run build      # production build into out/
+npm test           # unit tests (Vitest)
 npm run typecheck  # tsc --noEmit for main+preload and renderer
+npm run build      # production build into out/
 npm run dist       # build + package installers into release/
 npm run dist:dir   # build + package unpacked app only (faster, no installer)
 node scripts/make-icon.cjs   # regenerate build/icon.ico + icon.png
@@ -97,43 +109,49 @@ node scripts/make-icon.cjs   # regenerate build/icon.ico + icon.png
 ### Project layout
 ```
 src/
-├─ main/            # Node side — owns the filesystem and OS integration
-│  ├─ index.ts        app lifecycle, window, single-instance, close guard, CLI file arg
-│  ├─ menu.ts         application menu + accelerators → menu:command IPC
-│  ├─ ipc.ts          ipcMain handlers wiring renderer requests to files/settings
-│  ├─ files.ts        fs/promises read/write + open/save dialogs + recent docs
-│  └─ settings.ts     electron-store: window bounds + theme
-├─ preload/
-│  ├─ index.ts        contextBridge → window.api (only named, typed methods)
-│  └─ index.d.ts      global Window typing
-├─ renderer/        # Browser side — owns the editor and UI
-│  ├─ main.ts         bootstrap, command dispatch, file ops, dirty tracking
-│  ├─ editor.ts       MarkdownEditor: thin wrapper over Crepe (load/getMarkdown)
-│  ├─ document.ts     immutable DocumentState (path/name/dirty)
-│  ├─ theme.ts        light/dark Crepe theme swap
-│  ├─ find.ts         in-document find via CSS Custom Highlight API
-│  ├─ index.html
-│  └─ styles/app.css  app chrome (find bar, status bar, reading column)
-└─ shared/types.ts  IPC channel constants + the MdViewApi contract
+├─ main/                 Node side — filesystem, dialogs, OS integration
+│  ├─ index.ts            lifecycle, window, single instance, close guard,
+│  │                      startup files, navigation hardening
+│  ├─ ipc.ts              validated IPC handlers
+│  ├─ files.ts            read/write, open/save dialogs, recent documents
+│  ├─ external.ts         the only way to open a link (http/https/mailto only)
+│  ├─ settings.ts         electron-store: prefs, session, theme, window
+│  ├─ menu.ts             application menu → menu:command
+│  └─ about.ts
+├─ preload/index.ts      contextBridge → window.api (named, typed methods only)
+├─ shared/types.ts       IPC channels and the MdViewApi contract
+└─ renderer/
+   ├─ main.ts             bootstrap and command map
+   ├─ app/workbench.ts    tabs, open/save/close, rendering, links, outline
+   ├─ lib/                pure logic, each with *.test.ts
+   │  ├─ markdown.ts       markdown-it setup: source-line mapping, task lists,
+   │  │                    heading anchors, highlighted code
+   │  ├─ sanitize.ts       DOMPurify config + relative image paths
+   │  ├─ format.ts         formatting commands (bold, headings, lists, …)
+   │  ├─ tabs.ts           immutable tab list
+   │  ├─ scroll-map.ts     source line ⇄ preview offset interpolation
+   │  ├─ paths.ts          paths, file URLs, link classification
+   │  └─ stats.ts          word count and reading time
+   ├─ ui/                 editor pane, preview pane, scroll sync, tabs,
+   │                      outline, toolbar, layout, find bar, status bar
+   └─ styles/             app.css (tokens + chrome), preview.css (typography)
 ```
 
 ### Architecture notes
-- **Security:** `contextIsolation: true`, `nodeIntegration: false`. The renderer
-  has no Node access; every disk/OS action goes through the narrow `window.api`
-  bridge defined in `src/shared/types.ts` and implemented in `src/main/ipc.ts`.
-- **Process split:** main owns all filesystem and dialog access; the renderer
-  only holds editor state and calls back through IPC. Menu items live in main and
-  push `menu:command` events to the renderer so shortcuts and clicks share one
-  code path.
-- **Find** uses the CSS Custom Highlight API instead of wrapping matches in
-  `<span>`s — wrapping nodes would corrupt ProseMirror's view reconciliation.
-- **Immutability:** the current document is an immutable `DocumentState`; every
-  change returns a new object (`src/renderer/document.ts`).
-- **Crepe `getMarkdown()` guard:** a known Crepe bug throws when serializing a
-  fenced code block with no language; `MarkdownEditor.getMarkdown()` falls back
-  to the last value seen from change events.
-- **Resilient startup:** `init()` wraps `getTheme()` in try/catch so a settings
-  failure can never block the editor from mounting.
+- **Security.** `contextIsolation: true`, `nodeIntegration: false`. The preview
+  renders untrusted document HTML, so it is sanitized with DOMPurify; the window
+  can never be navigated away, and links reach the OS only through
+  `openExternalSafe`, which allows http/https/mailto and nothing else.
+- **Scroll sync.** Every rendered block carries its source line
+  (`data-line`); the preview measures those blocks and interpolates between
+  them. Only the pane the user last touched drives the other, which rules out
+  feedback loops.
+- **Tabs.** One CodeMirror view is shared; each tab owns an `EditorState`, so
+  switching tabs keeps each document's cursor and undo history. A tab is
+  unsaved when its text differs from the last saved text.
+- **Theming.** All colours are CSS variables keyed off `data-theme`; the editor
+  theme and syntax colours use the same variables, so switching theme needs no
+  editor rebuild.
 
 ### Packaging note
 `electron-builder` downloads tool binaries (winCodeSign, NSIS) from GitHub on
