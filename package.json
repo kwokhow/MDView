@@ -1,6 +1,6 @@
 {
   "name": "mdview",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "MDView by KEC — a split-view Markdown editor and viewer for Windows",
   "main": "./out/main/index.js",
   "author": {
@@ -71,7 +71,8 @@
       {
         "provider": "github",
         "owner": "kwokhow",
-        "repo": "MDView"
+        "repo": "MDView",
+        "releaseType": "release"
       }
     ],
     "directories": {
@@ -110,7 +111,8 @@
       "perMachine": true,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "shortcutName": "MDView"
+      "shortcutName": "MDView",
+      "artifactName": "MDView-Setup-${version}.${ext}"
     },
     "portable": {
       "artifactName": "MDView-${version}-portable.exe"

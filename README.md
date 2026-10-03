@@ -20,16 +20,26 @@ desktop app with Electron.
 ## For users
 
 ### Download & install
-Grab a build from the **[Releases page](https://github.com/kwokhow/MDView/releases/latest)**:
+Grab a build from the **[Releases page](https://github.com/kwokhow/MDView/releases/latest)**
+(Windows 10/11, 64-bit):
 
 | File | What it is |
 | --- | --- |
-| `MDView Setup <version>.exe` | Installer. Adds Start-menu and desktop shortcuts and registers `.md` / `.markdown` files so you can double-click or "Open with" MDView. Installing a newer version updates in place. |
-| `MDView-<version>-portable.exe` | Single self-contained executable. No install — just run it. Does not register file associations. |
+| `MDView-Setup-<version>.exe` | Installer. Adds Start-menu and desktop shortcuts and registers `.md` / `.markdown` files so you can double-click or "Open with" MDView. Installing a newer version updates in place. Needs administrator approval. |
+| `MDView-<version>-portable.exe` | Single self-contained executable. No install, no admin rights — just run it. Does not register file associations. |
 
-> The executables are **unsigned** (no paid code-signing certificate), so Windows
-> SmartScreen may show a "Windows protected your PC" prompt on first run — choose
-> **More info → Run anyway**.
+**Installing**
+1. Download `MDView-Setup-<version>.exe` and run it.
+2. The executables are **unsigned** (no paid code-signing certificate), so Windows
+   SmartScreen may say *"Windows protected your PC"* — click **More info → Run anyway**.
+3. Approve the administrator prompt, keep the default folder, finish.
+4. To make double-clicking a `.md` file open MDView: right-click any `.md` file →
+   **Open with → Choose another app → MDView**, and tick **Always**. Pick the
+   installed MDView, not a portable copy — a portable file's name changes with
+   every version, which would break the association after an update.
+
+To update, run the newer installer over the old one; settings and open tabs are
+kept. To remove, use **Settings → Apps → Installed apps → MDView → Uninstall**.
 
 ### The window
 - **Tabs** along the top, one per open document. A dot on a tab means unsaved

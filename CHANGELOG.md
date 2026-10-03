@@ -2,6 +2,16 @@
 
 All notable changes to MDView are documented here.
 
+## [2.0.1] — 2026-10-03
+
+### Fixed
+- Releases were being created on GitHub as hidden drafts, so no version was
+  publicly downloadable. Tagged builds now publish the release directly, with
+  release notes and install steps on the release page.
+- The installer is now named `MDView-Setup-<version>.exe` (no spaces).
+
+No changes to the app itself since 2.0.0.
+
 ## [2.0.0] — 2026-09-25
 
 A redesign around a split view: raw Markdown on the left, formatted preview on
